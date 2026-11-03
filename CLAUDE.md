@@ -1,7 +1,19 @@
 # Presentaciones Almabrands — editor HTML → PDF
 
-App local para crear/editar presentaciones comerciales de Almabrands como HTML y exportarlas a PDF vectorial 16:9.
-Sin dependencias: `npm start` (o `node server.js`) → http://localhost:5177
+App para crear/editar presentaciones comerciales de Almabrands como HTML y exportarlas a PDF vectorial 16:9.
+
+**Producción:** https://almabrands-presentaciones.vercel.app (Vercel + Supabase)
+**Local:** `npm start` (o `node server.js`) → http://localhost:5177 (sin Supabase; archivos locales)
+
+## Despliegue (estado al 2026-11-03)
+- Repo: github.com/almabrands/presentaciones (cuenta GitHub `almabrands`)
+- Vercel: proyecto `steps-proyectos/almabrands-presentaciones` (cuenta ealdunate@almabrands.com)
+- Supabase: proyecto `datmhpgzdqhukidylkon` (cuenta ealdunate@almabrands.com)
+- Variables Vercel configuradas: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `AI_PROVIDER=api`
+- **Pendiente:** `ANTHROPIC_API_KEY` (activa el botón ✨ IA en producción)
+- **Pendiente:** Google Auth (hoy la URL es pública sin login)
+- Storage: bucket `media` público en Supabase; fotos se suben al guardar
+- PDF: "Imprimir → Guardar como PDF" desde el navegador (vectorial, funciona en producción)
 
 ## Estructura
 - `server.js` — servidor Node sin dependencias: estáticos + API (`/api/list`, `/api/new`, `/api/save`, `/api/stat`, `/api/rename`, `/api/delete`, `/api/pdf`). El PDF se genera con Chrome headless (`--print-to-pdf`) sobre `?print=1`.
