@@ -1,0 +1,17 @@
+node_modules/
+.env
+
+# Contenido generado por usuarios (no va en git; vive en Supabase en producción)
+media/
+presentaciones/
+
+# Historiales y papelera locales
+plantillas/.historial/
+plantillas/.papelera/
+core/.historial/
+core/assets/.historial/
+
+# macOS
+.DS_Store
+
+*.log

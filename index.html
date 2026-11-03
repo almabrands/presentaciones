@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presentaciones Almabrands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--ink:#16121e;--mute:#6d6a78;--line:#e4e3ea;--bg:#f5f4f8;--red:#FF0000;--purple:#42108E;--violet:#6b4cff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Poppins",system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+/* layout con sidebar */
+.app{display:flex;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;flex:0 0 248px;display:flex;flex-direction:column;background:#16121e;color:#fff;padding:22px 14px}
+.side .brand{padding:4px 10px 22px}
+.side .brand img{height:28px;display:block}
+.side .brand span{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-top:8px;letter-spacing:.3px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:rgba(255,255,255,.72);text-decoration:none;font-size:14.5px;font-weight:500}
+.nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav a.on{background:rgba(255,255,255,.12);color:#fff}
+.nav a .n{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.12);border-radius:999px;padding:1px 8px}
+.side .grow{flex:1}
+.aist{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.6);padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);line-height:1.35}
+.aist i{width:8px;height:8px;border-radius:50%;background:#888;flex:none}
+.aist.ok i{background:#3ddc97}.aist.err i{background:#ff6b6b}
+.mainwrap{flex:1;min-width:0}
+header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:18px;padding:14px 36px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header h1{font-size:19px;font-weight:600;margin:0}
+header .grow{flex:1}
+.view[hidden]{display:none}
+.lead2{color:var(--mute);font-size:14px;margin:-6px 0 20px;max-width:900px;line-height:1.55}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:22px}
+.panel h3{margin:0 0 4px;font-size:16.5px;display:flex;align-items:center;gap:9px}
+.panel .desc{color:var(--mute);font-size:13.5px;margin:0 0 16px;line-height:1.5}
+.drop{border:2px dashed #cfcbe0;border-radius:14px;padding:26px;text-align:center;color:var(--mute);font-size:14px;cursor:pointer;transition:.15s;background:#fbfaff}
+.drop:hover,.drop.drag{border-color:var(--violet);background:#f4f1ff;color:var(--ink)}
+.drop b{color:var(--ink)}
+.irow{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;align-items:flex-start}
+.irow input,.irow textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--ink);background:#fff}
+.irow input{flex:1 1 260px;height:42px}
+.irow textarea{flex:2 1 380px;min-height:42px;height:42px;resize:vertical;line-height:1.4}
+.irow input:focus,.irow textarea:focus{outline:2px solid var(--violet);border-color:transparent}
+.lchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lchips:empty{display:none}
+.lchip{display:flex;align-items:center;gap:8px;background:#f4f3f8;border:1px solid var(--line);border-radius:10px;padding:4px;font-size:12.5px;max-width:320px}
+.lchip img,.lchip .pdf{width:36px;height:36px;border-radius:7px;object-fit:cover;flex:none}
+.lchip .pdf{display:grid;place-items:center;background:var(--red);color:#fff;font-weight:700;font-size:10.5px}
+.lchip .pdf.html{background:var(--purple)}
+.lchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lchip button{border:0;background:none;cursor:pointer;font-size:16px;padding:2px 7px;border-radius:6px;color:var(--mute)}
+.lchip button:hover{background:#fdeaea;color:#c00}
+/* selector de vista + tabla */
+.vtoggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;background:#fff;padding:3px;gap:2px;flex:none}
+.vtoggle button{display:grid;place-items:center;width:36px;height:34px;border:0;border-radius:7px;background:none;color:var(--mute);cursor:pointer}
+.vtoggle button.on{background:#f0edf8;color:var(--purple)}
+h2 .vtoggle{margin-left:auto}
+.tablewrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px}
+.dtable{width:100%;border-collapse:collapse;font-size:13.5px}
+.dtable th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--mute);font-weight:600;padding:12px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:#fbfafd}
+.dtable th[data-sort]{cursor:pointer}
+.dtable th[data-sort]:hover,.dtable th.on{color:var(--purple)}
+.dtable td{padding:10px 12px;border-bottom:1px solid #f1f0f5;vertical-align:middle}
+.dtable tr:last-child td{border-bottom:0}
+.dtable tr:hover td{background:#faf9fd}
+.dtable .tthumb{position:relative;display:block;width:128px;aspect-ratio:16/9;border-radius:7px;overflow:hidden;border:1px solid var(--line);background:#eceaf1}
+.dtable .tthumb iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.dtable .nm a{color:var(--ink);text-decoration:none;font-weight:600;display:block;line-height:1.3}
+.dtable .nm a:hover{color:var(--purple)}
+.dtable .nm{min-width:240px;max-width:440px}
+.dtable .nm small{display:block;color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.dtable .chips{margin-top:0}
+.dtable .acts{display:flex;gap:5px;justify-content:flex-end;white-space:nowrap}
+.ib{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#4a4658;cursor:pointer;text-decoration:none}
+.ib:hover{border-color:#c9c7d3;color:var(--ink)}
+.ib.del:hover{background:#fff0f0;border-color:#f3b0b0;color:#c00}
+.ib svg{width:15px;height:15px}
+.dtable .muted{color:var(--mute);white-space:nowrap}
+
+/* diseño & estilo */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:22px;align-items:start}
+.dgrid .panel{margin:0}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.cfield{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.cfield input[type=color]{width:38px;height:38px;border:0;padding:0;background:none;cursor:pointer;flex:none}
+.cfield input[type=color]::-webkit-color-swatch-wrapper{padding:0}.cfield input[type=color]::-webkit-color-swatch{border:1px solid rgba(0,0,0,.12);border-radius:9px}
+.cfield b{display:block;font-size:12.5px}
+.cfield input[type=text]{width:86px;border:0;font:500 12px ui-monospace,monospace;color:var(--mute);padding:0;background:none}
+.cfield input[type=text]:focus{outline:none;color:var(--ink)}
+.pfoot{display:flex;align-items:center;gap:12px;margin-top:16px}
+.pfoot .msg{font-size:13px;color:var(--mute)}
+.pfoot .msg.ok{color:#0c7a4c}
+.fontprev{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.fontprev .a{font-size:30px;font-weight:700;color:var(--red);line-height:1.15}
+.fontprev .b{font-size:15px;margin-top:8px;line-height:1.5;color:#3a3744}
+.logos2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.logobox{border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.logobox img{height:44px;max-width:100%;object-fit:contain}
+.logobox.c{background:#fff;border:1px solid var(--line)}
+.logobox.w{background:var(--red)}
+.trow{display:grid;grid-template-columns:minmax(220px,1fr) repeat(3,minmax(170px,220px));gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f0f5;font-size:13.5px}
+.trow:last-child{border-bottom:0}
+.trow .h{font-size:11.5px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.tsel{display:flex;align-items:center;gap:6px}
+.tsel select{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;padding:0 6px;background:#fff;color:var(--ink)}
+.tsel input[type=color]{width:30px;height:30px;border:0;padding:0;background:none;cursor:pointer}
+.tsel input[type=color]:disabled{opacity:.9;cursor:default}
+#guia{width:100%;min-height:380px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);resize:vertical}
+#guia:focus{outline:2px solid var(--violet);border-color:transparent}
+.prevs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:6px}
+.prevs .thumb{border-radius:10px;border:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font:500 14px "Poppins",sans-serif;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:#c9c7d3}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:#e00000}
+.btn.ai{background:var(--violet);border-color:var(--violet);color:#fff}
+.btn.ai:hover{background:#5a3ce6}
+.btn[hidden]{display:none}
+.btn.sm{height:32px;padding:0 11px;font-size:12.5px;border-radius:8px}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn.danger:hover{background:#fff0f0;border-color:#f3b0b0;color:#c00}
+svg.i{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+main{max-width:1440px;margin:0 auto;padding:26px 36px 80px}
+h2{font-size:20px;margin:34px 0 4px;display:flex;align-items:center;gap:10px}
+h2 .count{font-size:13px;font-weight:500;color:var(--mute);background:#ebe9f1;border-radius:999px;padding:2px 10px}
+.hint{color:var(--mute);font-size:14px;margin:0 0 16px}
+
+/* buscador IA */
+.aisearch{background:linear-gradient(135deg,#21163a 0%,#42108E 100%);color:#fff;border-radius:18px;padding:24px 26px;box-shadow:0 14px 40px rgba(66,16,142,.18)}
+.aisearch h2{margin:0 0 4px;color:#fff;font-size:21px}
+.aisearch p{margin:0 0 14px;color:rgba(255,255,255,.72);font-size:14px}
+.aisearch .row{display:flex;gap:12px;align-items:flex-end}
+.aisearch textarea{flex:1;min-height:62px;border:0;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.45;resize:vertical;color:var(--ink)}
+.aisearch textarea:focus{outline:3px solid #b9a6ff}
+.aisearch .btn.ai{height:46px;background:#fff;color:var(--purple);border-color:#fff;font-weight:600}
+.aisearch .btn.ai:hover{background:#efeaff}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.examples button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.examples button:hover{background:rgba(255,255,255,.18)}
+.results{margin-top:18px}
+.results:empty{display:none}
+.results .sum{background:rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.5;margin-bottom:14px}
+.results .status{font-size:14px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:10px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:16px}
+.rcard{background:#fff;color:var(--ink);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.rcard .thumb{position:relative}
+.score{position:absolute;right:10px;top:10px;z-index:2;font-weight:700;font-size:15px;color:#fff;background:var(--c,#0c7a4c);border-radius:999px;padding:4px 11px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.rcard .body{padding:12px 14px 4px;font-size:13px;line-height:1.45}
+.rcard .body b{display:block;font-size:14.5px;margin-bottom:6px}
+.aisearch .rcard p{margin:0 0 7px;color:#3a3744;font-size:13px}
+.aisearch .rcard p.sub{color:var(--mute)}
+.rcard .body .lbl{font-weight:600;color:var(--purple)}
+.rcard .body .err{color:#c00}
+
+/* pestañas del recuadro IA + crear */
+.tabs{display:inline-flex;background:rgba(255,255,255,.1);border-radius:11px;padding:4px;margin-bottom:14px;gap:4px}
+.tabs button{border:0;background:transparent;color:rgba(255,255,255,.75);font:500 13.5px "Poppins",sans-serif;padding:8px 14px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:#fff;color:var(--purple)}
+.pane[hidden]{display:none}
+.copts{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+.copts select,.copts input{height:40px;border:0;border-radius:10px;padding:0 12px;font-size:13.5px;color:var(--ink);background:#fff}
+.copts input{min-width:240px;flex:1}
+.copts .attach{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;border:1px dashed rgba(255,255,255,.5);color:#fff;font-size:13px;cursor:pointer}
+.copts .attach:hover{background:rgba(255,255,255,.1)}
+.copts .attach input[type=checkbox]{height:auto;min-width:0;flex:none;width:16px;height:16px;margin:0;accent-color:#fff}
+.cdata{margin-top:10px;font-size:13px}
+.cdata summary{cursor:pointer;color:rgba(255,255,255,.8)}
+.cdata textarea{width:100%;margin-top:8px;min-height:90px;border:0;border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ink)}
+.achips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.achips:empty{display:none}
+.achip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:10px;padding:4px 4px 4px 4px;font-size:12.5px;max-width:280px}
+.achip img,.achip .pdf{width:34px;height:34px;border-radius:7px;object-fit:cover;flex:none}
+.achip .pdf{display:grid;place-items:center;background:var(--red);font-weight:700;font-size:10.5px}
+.achip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.achip button{border:0;background:none;color:#fff;cursor:pointer;font-size:16px;padding:2px 7px;border-radius:6px}
+.achip button:hover{background:rgba(255,255,255,.2)}
+.aisearch.drag{outline:3px dashed #b9a6ff;outline-offset:-6px}
+.prog{background:#fff;color:var(--ink);border-radius:14px;padding:18px 20px;margin-top:16px}
+.prog h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:10px}
+.prog .spin{border-color:#ddd;border-top-color:var(--violet)}
+.prog .est{font-size:13px;color:var(--mute);margin:0 0 12px}
+.bar{height:8px;background:#efedf5;border-radius:99px;overflow:hidden;margin:6px 0 14px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--red));width:0;transition:width .4s}
+.plan{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px 18px;font-size:12.5px;margin:0;padding:0;list-style:none;counter-reset:s}
+.plan li{display:flex;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px solid #f1f0f5;counter-increment:s}
+.plan li::before{content:counter(s);font-weight:700;color:var(--mute);min-width:18px}
+.plan li .ic{flex:none;width:16px;text-align:center}
+.plan li small{color:var(--mute);display:block}
+.plan li[data-e=generando] .ic{color:var(--violet)}
+.plan li[data-e=listo] .ic{color:#0c7a4c}
+.plan li[data-e=error] .ic{color:#c00}
+.log{font-size:12px;color:var(--mute);margin-top:12px;max-height:90px;overflow:auto;line-height:1.5}
+.prog .done{display:flex;gap:10px;align-items:center;margin-top:14px}
+
+/* filtros */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0 18px}
+.search{position:relative;flex:1 1 300px}
+.search input{width:100%;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px 0 38px;font-size:14px;background:#fff}
+.search input:focus,.toolbar select:focus{outline:2px solid var(--violet);border-color:transparent}
+.search svg{position:absolute;left:12px;top:12px;color:var(--mute)}
+.toolbar select{height:42px;border:1px solid var(--line);border-radius:10px;padding:0 30px 0 12px;font-size:13.5px;background:#fff;max-width:200px;color:var(--ink)}
+.toolbar select.on{border-color:var(--violet);background:#f2efff}
+.linkbtn{border:0;background:none;color:var(--violet);font-size:13px;cursor:pointer;padding:6px}
+
+/* tarjetas */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:22px}
+.card{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s}
+.card .thumb{border-radius:13px 13px 0 0}
+.card:has(details[open]){z-index:20}
+.card:hover{box-shadow:0 12px 30px rgba(22,18,30,.1);transform:translateY(-2px)}
+.thumb{position:relative;display:block;aspect-ratio:16/9;background:#eceaf1;overflow:hidden;border-bottom:1px solid var(--line)}
+.thumb iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.meta{padding:13px 16px 4px}
+.meta b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+.meta .sub{font-size:12.5px;color:var(--mute);margin-top:3px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{font-size:11.5px;padding:3px 8px;border-radius:6px;background:#f0eef5;color:#4a4658;white-space:nowrap}
+.chip.st{font-weight:600}
+.chip[data-st="Borrador"]{background:#f1f1f4;color:#5c5a66}.chip[data-st="En revisión"]{background:#fff4dc;color:#8a5a00}.chip[data-st="Enviada"]{background:#e6efff;color:#1f4fbf}
+.chip[data-st="Ganada"]{background:#e3f7ee;color:#0c7a4c}.chip[data-st="Perdida"]{background:#fdeaea;color:#b00}.chip[data-st="Archivada"]{background:#eee;color:#777}.chip[data-st="Plantilla"]{background:#f0edf8;color:var(--purple)}
+.chip.warn{background:#fff4dc;color:#8a5a00;cursor:pointer}
+.actions{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 16px;margin-top:auto}
+details.more{position:relative}
+details.more summary{list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more .menu{position:absolute;bottom:38px;left:0;z-index:5;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:5px;display:flex;flex-direction:column;min-width:140px}
+details.more .menu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;cursor:pointer}
+details.more .menu button:hover{background:#f4f3f8}
+details.more .menu button.del{color:#c00}
+.empty{grid-column:1/-1;border:2px dashed #d6d4df;border-radius:14px;padding:36px;text-align:center;color:var(--mute);font-size:14px}
+
+/* diálogos */
+dialog{border:0;border-radius:16px;padding:0;width:min(560px,94vw);box-shadow:0 30px 80px rgba(0,0,0,.25);color:var(--ink)}
+dialog.wide{width:min(980px,96vw)}
+dialog::backdrop{background:rgba(16,12,24,.5)}
+dialog form{padding:24px 26px}
+dialog h3{margin:0 0 4px;font-size:19px}
+dialog .desc{margin:0 0 16px;color:var(--mute);font-size:13.5px}
+dialog label,.flabel{display:block;font-size:12.5px;font-weight:600;margin:12px 0 5px;color:#3d3a48}
+dialog input:not([type=checkbox]),dialog select,dialog textarea{width:100%;min-height:40px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px;background:#fff;color:var(--ink)}
+dialog textarea{padding:10px 12px;line-height:1.45;resize:vertical}
+dialog input:focus,dialog select:focus,dialog textarea:focus{outline:2px solid var(--violet);border-color:transparent}
+dialog .foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:22px}
+dialog .foot .grow{flex:1;font-size:13px;color:var(--violet)}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}
+.fgrid .s2{grid-column:span 2}.fgrid .s3{grid-column:1/-1}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;align-items:center;gap:7px;margin:0;font-weight:500;font-size:13px;border:1px solid var(--line);border-radius:9px;padding:7px 11px;cursor:pointer}
+.checks label:has(input:checked){border-color:var(--violet);background:#f2efff}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:40px;border:1px solid var(--line);border-radius:10px;padding:5px 8px;background:#fff;cursor:text}
+.tags:focus-within{outline:2px solid var(--violet);border-color:transparent}
+.tags .tag{display:inline-flex;align-items:center;gap:4px;background:#f0edf8;color:var(--purple);border-radius:7px;padding:3px 4px 3px 9px;font-size:12.5px}
+.tags .tag button{border:0;background:none;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 4px;border-radius:5px}
+.tags .tag button:hover{background:#e2dbf5}
+.tags input{flex:1;min-width:120px;border:0!important;outline:0!important;min-height:28px!important;padding:0 4px!important}
+.flash{animation:fl 1.6s ease}
+@keyframes fl{0%,40%{background:#efeaff}100%{background:#fff}}
+.tips{margin-top:40px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 26px;font-size:14px;color:#3a3744;line-height:1.6}
+.tips b{color:var(--ink)}
+.tips ul{margin:8px 0 0;padding-left:20px}
+@media (min-width:761px) and (max-width:980px){.side{flex-basis:76px;padding:18px 10px}.side .brand span,.nav a span,.nav a .n,.aist span{display:none}.side .brand img{height:18px}.nav a{justify-content:center}}
+@media (max-width:760px){
+  .app{display:block}
+  .side{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:50;height:auto;flex-direction:row;padding:6px 8px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+  .side .brand,.side .grow,.aist{display:none}
+  .nav{flex-direction:row;flex:1;gap:4px}
+  .nav a{flex:1;flex-direction:column;gap:3px;padding:7px 4px;font-size:11px;justify-content:center;text-align:center}
+  .nav a span{display:block!important}
+  .nav a .n{display:none}
+  .mainwrap{padding-bottom:78px}
+  header{padding:12px 16px;gap:10px}
+  header h1{font-size:17px}
+  header .btn{height:36px;padding:0 12px;font-size:13px}
+  main{padding:16px 14px 40px}
+  .aisearch{padding:16px;border-radius:14px}
+  .aisearch h2{font-size:18px}
+  .tabs{display:flex;width:100%}.tabs button{flex:1;padding:8px 6px;font-size:12.5px}
+  .copts>*{flex:1 1 100%}.copts select{flex:1 1 45%}
+  .toolbar select{flex:1 1 calc(50% - 5px);max-width:none;min-width:0;width:0}
+  .toolbar .vtoggle{margin-left:auto}
+  .dgrid{grid-template-columns:1fr}.trow{grid-template-columns:1fr 1fr}.trow>span:first-child,.trow .h:first-child{grid-column:1/-1}.trow .h{display:none}
+  .logos2{grid-template-columns:1fr}
+  .irow>*{flex:1 1 100%!important}
+  .drop{padding:18px}
+  .panel{padding:16px}
+  dialog form{padding:18px 16px}
+  dialog .foot{flex-wrap:wrap}dialog .foot .grow{flex-basis:100%;order:-1}
+  .dtable .hm{display:none}
+  .dtable .tthumb{width:88px}
+  .dtable .nm{min-width:150px}
+  .dtable td,.dtable th{padding:8px}
+  .tips{padding:16px 18px}
+.fgrid{grid-template-columns:1fr}.fgrid .s2{grid-column:auto}.aisearch .row{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand"><img src="core/assets/logo-almabrands-blanco.png" alt="almabrands"><span>Estudio de presentaciones</span></div>
+  <nav class="nav">
+    <a href="#presentaciones" data-v="presentaciones"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span>Presentaciones</span><b class="n" id="nP"></b></a>
+    <a href="#plantillas" data-v="plantillas"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Plantillas base</span><b class="n" id="nT"></b></a>
+    <a href="#diseno" data-v="diseno"><svg class="i" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2z"/></svg><span>Diseño &amp; estilo</span></a>
+  </nav>
+  <span class="grow"></span>
+  <div class="aist" id="aist"><i></i><span>Verificando IA…</span></div>
+</aside>
+<div class="mainwrap">
+<header>
+  <h1 id="vTitle">Presentaciones</h1>
+  <span class="grow"></span>
+  <button class="btn primary" id="newBtn">+ Nueva presentación</button>
+  <button class="btn primary" id="newTplBtn" hidden>+ Nueva plantilla</button>
+</header>
+<main>
+<section class="view" data-view="presentaciones">
+  <section class="aisearch">
+    <div class="tabs"><button class="on" data-tab="buscar">Buscar base con IA</button><button data-tab="crear">✨ Crear presentación con IA</button></div>
+    <div class="pane" data-pane="buscar">
+    <h2><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>¿Qué presentación necesitas?</h2>
+    <p>Describe el tipo de presentación, cliente, rubro, segmento, estudios y productos. Claude revisa las fichas y el contenido de todas las presentaciones y plantillas, y te recomienda desde cuál partir.</p>
+    <div class="row">
+      <textarea id="aiq" placeholder="Ej: Propuesta comercial para una marca de retail que apunta a mujeres 30-50, con estudio cualitativo y cuantitativo, y rediseño de identidad visual."></textarea>
+      <button class="btn ai" id="aiGo"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Buscar con IA</button>
+    </div>
+    <div class="examples">
+      <button data-ex="Oferta técnica de identidad de marca para una empresa de servicios públicos, con diagnóstico, auditoría de marca y nuevo sistema visual.">Identidad de marca · servicios</button>
+      <button data-ex="Programa de formación en liderazgo para un banco en proceso de fusión, con talleres presenciales y online, y medición de impacto.">Liderazgo · banca</button>
+      <button data-ex="Informe de resultados de estudio de consumidor para una marca de calzado, con perfiles de clientes y salud de marca.">Estudio de consumidor · retail</button>
+    </div>
+    <div class="results" id="results"></div>
+    </div>
+    <div class="pane" data-pane="crear" hidden>
+      <h2><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Crear una presentación completa</h2>
+      <p>Claude arma la estructura (portada, secciones, contenido y cierre) reutilizando las slides más relevantes de tus presentaciones y plantillas como molde gráfico, y las adapta a tu brief. Después la editas libremente.</p>
+      <textarea id="cbrief" placeholder="Ej: Propuesta comercial para Isapre Vida Sana: rediseño de identidad de marca tras su fusión. Diagnóstico con focus groups a afiliados y entrevistas a gerentes, plataforma de marca, nueva identidad visual y verbal. Plazo 5 meses. Incluir credenciales, equipo y valores en UF." style="width:100%;min-height:96px;border:0;border-radius:12px;padding:12px 14px;font-size:14.5px;line-height:1.45;resize:vertical;color:var(--ink)"></textarea>
+      <div class="copts">
+        <input id="ctitulo" placeholder="Nombre (opcional; si no, lo propone Claude)" autocomplete="off">
+        <select id="cbase" title="Tema visual de la presentación"><option value="">Estilo base: automático</option></select>
+        <select id="clargo" title="Largo aproximado"><option value="">Largo: automático</option><option value="8">~8 slides</option><option value="12">~12 slides</option><option value="16">~16 slides</option><option value="22">~22 slides</option></select>
+        <label class="attach"><svg class="i" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>Adjuntar imágenes, PDF o texto<input id="cfile" type="file" multiple accept="image/*,application/pdf,.txt,.csv,.md,.json,.tsv,text/*" hidden></label>
+        <label class="attach web" title="Claude investiga en internet sobre el cliente y propone fotos reales (más lento)"><input id="cweb" type="checkbox"> 🌐 Buscar en internet</label>
+        <button class="btn ai" id="cGo" style="height:44px;background:#fff;color:var(--purple);border-color:#fff;font-weight:600"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Crear presentación</button>
+      </div>
+      <div class="achips" id="cchips"></div>
+      <details class="cdata"><summary>Datos de apoyo (opcional): pega cifras, textos o tablas</summary><textarea id="cdata" placeholder="Pega aquí datos del cliente, resultados, una tabla de Excel…"></textarea></details>
+      <div id="cprog"></div>
+    </div>
+  </section>
+
+  <h2>Mis presentaciones <span class="count" id="count"></span></h2>
+  <div class="toolbar">
+    <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Buscar por nombre, cliente, rubro, estudio, contenido…" autocomplete="off"></div>
+    <select id="fTipo" data-k="tipo"><option value="">Tipo</option></select>
+    <select id="fEstado" data-k="estado"><option value="">Estado</option></select>
+    <select id="fCliente" data-k="cliente"><option value="">Cliente</option></select>
+    <select id="fRubro" data-k="rubros"><option value="">Rubro</option></select>
+    <select id="fServicio" data-k="servicios"><option value="">Servicio</option></select>
+    <select id="sort"><option value="mtime">Recientes</option><option value="title">Nombre</option><option value="cliente">Cliente</option><option value="fecha">Fecha</option></select>
+    <button class="linkbtn" id="clear" hidden>Limpiar filtros</button>
+    <div class="vtoggle" data-for="p"></div>
+  </div>
+  <div class="grid" id="decks"></div>
+
+</section>
+
+<section class="view" data-view="plantillas" hidden>
+  <p class="lead2">Las plantillas son la base gráfica de todo: cada presentación nueva parte de una, la IA usa sus slides como moldes y cualquiera de sus slides se puede insertar en otra presentación.</p>
+  <div class="panel" id="importPanel">
+    <h3><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Nueva plantilla desde un archivo</h3>
+    <p class="desc">Sube el <b>PDF de una presentación</b> (o imágenes de sus slides). Claude detecta colores y tipos de slide, replica las páginas representativas en HTML editable con el sistema de la marca —recortando las fotos reales del PDF— y genera su ficha. Si subes un <b>HTML</b> ya hecho con este sistema, solo se importa y se genera su ficha.</p>
+    <div class="drop" id="tDrop"><b>Arrastra aquí el archivo</b> o haz clic para elegirlo<br><small>PDF · PNG/JPG (una imagen por slide) · HTML</small><input id="tFile" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,.html,.htm,text/html" hidden></div>
+    <div class="lchips" id="tChips"></div>
+    <div class="irow">
+      <input id="tNombre" placeholder="Nombre (opcional; ej. “Plantilla Cliente X · Propuesta”)" autocomplete="off">
+      <textarea id="tNotas" placeholder="Notas para Claude (opcional): qué destacar, qué páginas evitar, cliente, contexto…"></textarea>
+      <button class="btn ai" id="tGo" style="height:42px"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Crear plantilla con IA</button>
+    </div>
+    <div id="tprog"></div>
+  </div>
+  <h2>Plantillas base <span class="count" id="countT"></span><span class="vtoggle" data-for="t"></span></h2>
+  <div class="grid" id="templates"></div>
+</section>
+
+<section class="view" data-view="diseno" hidden>
+  <p class="lead2">Elementos transversales del sistema. Los <b>colores de marca</b> y la <b>tipografía</b> se aplican a todas las presentaciones (también las existentes). Los <b>colores por plantilla</b> definen el tema de las nuevas presentaciones creadas desde cada plantilla. La <b>guía de marca</b> es el contexto que Claude usa en todo lo que genera.</p>
+  <div class="dgrid">
+    <div class="panel">
+      <h3>Colores de marca</h3>
+      <p class="desc">Variables globales del sistema (alma.css).</p>
+      <div class="colors" id="dColors"></div>
+      <div class="pfoot"><button class="btn primary" id="sColors">Guardar colores</button><span class="msg" id="mColors"></span></div>
+    </div>
+    <div class="panel">
+      <h3>Tipografía</h3>
+      <p class="desc">Fuente principal de títulos y textos (la manuscrita se mantiene en Caveat).</p>
+      <select id="dFont" style="width:100%;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:14px"></select>
+      <div class="fontprev" id="fontPrev"><div class="a">Actualización integral de la identidad de marca</div><div class="b">Un proceso de consultoría en 3 etapas: diagnóstico integrado, definiciones estratégicas y estrategia en acción. <b>Entregables</b> claros y medibles.</div></div>
+      <div class="pfoot"><button class="btn primary" id="sFont">Guardar tipografía</button><span class="msg" id="mFont"></span></div>
+    </div>
+    <div class="panel">
+      <h3>Logos</h3>
+      <p class="desc">PNG con fondo transparente. Se reemplazan en todas las presentaciones.</p>
+      <div class="logos2">
+        <div class="logobox c"><img id="lC" alt="logo color"><label class="btn sm">Reemplazar logo color<input type="file" accept="image/png" data-logo="color" hidden></label></div>
+        <div class="logobox w"><img id="lW" alt="logo blanco"><label class="btn sm">Reemplazar logo blanco<input type="file" accept="image/png" data-logo="blanco" hidden></label></div>
+      </div>
+      <div class="pfoot"><span class="msg" id="mLogo"></span></div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <h3>Colores por plantilla</h3>
+      <p class="desc">Color principal, secundario y terciario de cada plantilla. Vincúlalos a un color de marca o define uno propio.</p>
+      <div id="dTemas"></div>
+      <div class="pfoot"><button class="btn primary" id="sTemas">Guardar temas</button><span class="msg" id="mTemas"></span></div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Guía de marca para la IA</h3>
+      <p class="desc">Quiénes somos, servicios, tono, reglas de propuestas, cifras vigentes y datos de contacto. Claude la usa al generar slides, crear presentaciones completas, importar plantillas y completar fichas. Formato libre (Markdown).</p>
+      <textarea id="guia" spellcheck="false"></textarea>
+      <div class="pfoot"><button class="btn primary" id="sGuia">Guardar guía</button><span class="msg" id="mGuia"></span></div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <h3>Vista previa</h3>
+      <p class="desc">Portadas de las plantillas con el estilo actual (se actualizan al guardar).</p>
+      <div class="prevs" id="dPrev"></div>
+    </div>
+  </div>
+</section>
+
+  <div class="tips" id="tips">
+    <b>Cómo funciona</b>
+    <ul>
+      <li><b>Ficha:</b> cada presentación tiene una ficha (cliente, tipo, estado, rubros, segmentos, servicios, estudios, productos y un resumen de <i>fondo</i> y <i>forma</i>). Es su “memoria”: alimenta los filtros, el buscador con IA y el contexto que usa Claude al generar slides. “Completar con IA” la llena leyendo la presentación.</li>
+      <li><b>Buscador con IA:</b> describe lo que necesitas y obtén un ranking con % de calce, por qué calza, qué ajustar y qué slides reutilizar. “Crear desde esta” duplica la base para empezar.</li>
+      <li><b>Editor:</b> textos, imágenes, slides, gráficos y ✨ IA por slide. Exporta a PDF vectorial 16:9.</li>
+      <li><b>Con Claude Code:</b> pídele cambios sobre el archivo; el editor abierto se recarga solo.</li>
+    </ul>
+  </div>
+</main>
+</div>
+</div>
+
+<!-- nueva / duplicar / renombrar -->
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3 id="dlgTitle">Nueva presentación</h3>
+    <p class="desc" id="dlgText">Elige una base y un nombre.</p>
+    <div id="fromWrap"><label for="from">Base</label><select id="from"></select></div>
+    <label for="name">Nombre</label>
+    <input id="name" required placeholder="Ej: Propuesta identidad Cliente X" autocomplete="off">
+    <div class="foot"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok" id="dlgOk">Crear</button></div>
+  </form>
+</dialog>
+
+<!-- ficha -->
+<dialog id="fdlg" class="wide">
+  <form method="dialog" id="fForm">
+    <h3>Ficha de la presentación</h3>
+    <p class="desc" id="fTitle"></p>
+    <div class="fgrid">
+      <div class="s2"><label>Cliente</label><input name="cliente" list="dlClientes" autocomplete="off"></div>
+      <div><label>Responsable</label><input name="responsable" list="dlResp" autocomplete="off"></div>
+      <div><label>Tipo</label><select name="tipo"><option value="">—</option></select></div>
+      <div><label>Estado</label><select name="estado"><option value="">—</option></select></div>
+      <div><label>Fecha</label><input name="fecha" type="date"></div>
+      <div class="s3"><span class="flabel">Servicios</span><div class="checks" id="fServicios"></div></div>
+      <div class="s3"><span class="flabel">Rubros / industria</span><div class="tags" data-k="rubros"></div></div>
+      <div class="s3"><span class="flabel">Segmentos / públicos objetivo</span><div class="tags" data-k="segmentos"></div></div>
+      <div class="s3"><span class="flabel">Estudios y metodologías</span><div class="tags" data-k="estudios"></div></div>
+      <div class="s3"><span class="flabel">Productos y entregables</span><div class="tags" data-k="productos"></div></div>
+      <div class="s2"><span class="flabel">Etiquetas</span><div class="tags" data-k="etiquetas"></div></div>
+      <div><label>Valor (ej. UF 1.430)</label><input name="valor" autocomplete="off"></div>
+      <div class="s3"><label>Fondo — de qué trata (contexto, desafío, propuesta, etapas, entregables)</label><textarea name="fondo" rows="5"></textarea></div>
+      <div class="s3"><label>Forma — cómo está construida (estructura, tipos de slide, estilo, tono)</label><textarea name="forma" rows="3"></textarea></div>
+    </div>
+    <div class="foot">
+      <button type="button" class="btn ai" id="fAi"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Completar con IA</button>
+      <span class="grow" id="fMsg"></span>
+      <button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Guardar ficha</button>
+    </div>
+  </form>
+</dialog>
+<datalist id="dlClientes"></datalist><datalist id="dlResp"></datalist>
+<datalist id="dl-rubros"></datalist><datalist id="dl-segmentos"></datalist><datalist id="dl-estudios"></datalist><datalist id="dl-productos"></datalist><datalist id="dl-etiquetas"></datalist>
+
+<script>
+(function () {
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var $$ = function (s, el) { return [].slice.call((el || document).querySelectorAll(s)); };
+  var data = { plantillas: [], presentaciones: [], opciones: { tipo: [], estado: [], servicios: [] } };
+  var LISTS = ['rubros', 'segmentos', 'servicios', 'estudios', 'productos', 'etiquetas'];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function api(method, url, body) {
+    return fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; }); });
+  }
+  function when(ms) {
+    var d = new Date(ms), now = new Date();
+    var t = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === now.toDateString() ? 'hoy ' + t : d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) + ' ' + t;
+  }
+  function all() { return data.presentaciones.concat(data.plantillas); }
+  function byPath(p) { return all().filter(function (d) { return d.path === p; })[0]; }
+  function hasFicha(f) { return f && (f.cliente || f.tipo || f.fondo || LISTS.some(function (k) { return f[k] && f[k].length; })); }
+
+  /* ───────── tarjetas ───────── */
+  function thumb(d) { return '<a class="thumb" href="/' + esc(d.path) + '"><iframe loading="lazy" tabindex="-1" src="/' + esc(d.path) + '?thumb=1&v=' + Math.round(d.mtime) + '"></iframe></a>'; }
+  function chips(f, isTpl) {
+    var out = [];
+    if (f.estado) out.push('<span class="chip st" data-st="' + esc(f.estado) + '">' + esc(f.estado) + '</span>');
+    if (f.tipo) out.push('<span class="chip">' + esc(f.tipo) + '</span>');
+    (f.rubros || []).slice(0, 2).forEach(function (r) { out.push('<span class="chip">' + esc(r) + '</span>'); });
+    (f.servicios || []).slice(0, 1).forEach(function (r) { out.push('<span class="chip">' + esc(r) + '</span>'); });
+    if (!hasFicha(f)) out.push('<span class="chip warn" data-a="ficha">Sin ficha · completar</span>');
+    return '<div class="chips">' + out.join('') + '</div>';
+  }
+  function card(d, isTpl) {
+    var f = d.ficha || {}, p = esc(d.path), t = esc(d.title);
+    var sub = [f.cliente, d.slides + ' slides', isTpl ? 'plantilla' : 'editada ' + when(d.mtime)].filter(Boolean).map(esc).join(' · ');
+    return '<article class="card" data-p="' + p + '" data-t="' + t + '">' + thumb(d) +
+      '<div class="meta"><b>' + t + '</b><div class="sub">' + sub + '</div>' + chips(f, isTpl) + '</div>' +
+      '<div class="actions">' + (isTpl
+        ? '<button class="btn sm primary" data-a="use">Usar plantilla</button><button class="btn sm" data-a="ficha">Ficha</button><a class="btn sm" href="/' + p + '" title="Los cambios afectan a las nuevas presentaciones">Editar</a>' +
+          '<details class="more"><summary class="btn sm" title="Más">⋯</summary><div class="menu"><button data-a="ren">Renombrar</button><button class="del" data-a="del">Eliminar plantilla</button></div></details>'
+        : '<a class="btn sm primary" href="/' + p + '">Abrir</a><button class="btn sm" data-a="ficha">Ficha</button><button class="btn sm" data-a="dup">Duplicar</button>' +
+          '<details class="more"><summary class="btn sm" title="Más">⋯</summary><div class="menu"><button data-a="ren">Renombrar</button><button data-a="totpl">Convertir en plantilla</button><button class="del" data-a="del">Eliminar</button></div></details>') +
+      '</div></article>';
+  }
+
+  /* ───────── vista tabla ───────── */
+  var IC = {
+    grid: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+    tabla: '<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>',
+    open: '<svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    ficha: '<svg class="i" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
+    dup: '<svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></svg>',
+    ren: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>',
+    tpl: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>',
+    del: '<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+    use: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
+  };
+  var MODE = { p: 'grid', t: 'grid' };
+  try { MODE = Object.assign(MODE, JSON.parse(localStorage.getItem('alma-vista') || '{}')); } catch (e) {}
+  function drawToggles() {
+    $$('.vtoggle').forEach(function (v) {
+      v.innerHTML = ['grid', 'tabla'].map(function (m) { return '<button type="button" data-m="' + m + '" class="' + (MODE[v.dataset.for] === m ? 'on' : '') + '" title="' + (m === 'grid' ? 'Miniaturas' : 'Tabla') + '">' + IC[m] + '</button>'; }).join('');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.vtoggle [data-m]'); if (!b) return;
+    MODE[b.closest('.vtoggle').dataset.for] = b.dataset.m;
+    try { localStorage.setItem('alma-vista', JSON.stringify(MODE)); } catch (err) {}
+    render();
+  });
+  function table(list, isTpl) {
+    var sortK = $('#sort').value;
+    var th = function (label, k, cls) { return '<th' + (cls ? ' class="' + cls + (sortK === k ? ' on' : '') + '"' : (sortK === k ? ' class="on"' : '')) + (k ? ' data-sort="' + k + '"' : '') + '>' + label + (sortK === k ? ' ↓' : '') + '</th>'; };
+    return '<table class="dtable"><thead><tr><th></th>' + th('Nombre', 'title') + th('Cliente', 'cliente') + th('Tipo', '', 'hm') + (isTpl ? '' : th('Estado', '', 'hm')) + th('Rubros', '', 'hm') + th('Slides', '', 'hm') + th(isTpl ? 'Fecha' : 'Editada', isTpl ? 'fecha' : 'mtime', 'hm') + '<th></th></tr></thead><tbody>' +
+      list.map(function (d) {
+        var f = d.ficha || {}, p = esc(d.path), t = esc(d.title);
+        var acts = isTpl
+          ? '<button class="ib" data-a="use" title="Usar plantilla">' + IC.use + '</button><button class="ib" data-a="ficha" title="Ficha">' + IC.ficha + '</button><a class="ib" href="/' + p + '" title="Editar">' + IC.open + '</a><button class="ib" data-a="ren" title="Renombrar">' + IC.ren + '</button><button class="ib del" data-a="del" title="Eliminar plantilla">' + IC.del + '</button>'
+          : '<a class="ib" href="/' + p + '" title="Abrir">' + IC.open + '</a><button class="ib" data-a="ficha" title="Ficha">' + IC.ficha + '</button><button class="ib" data-a="dup" title="Duplicar">' + IC.dup + '</button><button class="ib" data-a="ren" title="Renombrar">' + IC.ren + '</button><button class="ib" data-a="totpl" title="Convertir en plantilla">' + IC.tpl + '</button><button class="ib del" data-a="del" title="Eliminar">' + IC.del + '</button>';
+        return '<tr data-p="' + p + '" data-t="' + t + '">' +
+          '<td><a class="tthumb" href="/' + p + '"><iframe loading="lazy" tabindex="-1" src="/' + p + '?thumb=1&v=' + Math.round(d.mtime) + '"></iframe></a></td>' +
+          '<td class="nm"><a href="/' + p + '">' + t + '</a><small>' + esc(d.file) + (hasFicha(f) ? '' : ' · <span class="chip warn" data-a="ficha">Sin ficha</span>') + '</small></td>' +
+          '<td>' + esc(f.cliente || '—') + '</td><td class="hm">' + esc(f.tipo || '—') + '</td>' +
+          (isTpl ? '' : '<td class="hm">' + (f.estado ? '<span class="chip st" data-st="' + esc(f.estado) + '">' + esc(f.estado) + '</span>' : '—') + '</td>') +
+          '<td class="hm"><div class="chips">' + (f.rubros || []).slice(0, 2).map(function (r) { return '<span class="chip">' + esc(r) + '</span>'; }).join('') + '</div></td>' +
+          '<td class="hm muted">' + d.slides + '</td><td class="hm muted">' + (isTpl ? esc(f.fecha || '—') : when(d.mtime)) + '</td>' +
+          '<td><div class="acts">' + acts + '</div></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  document.addEventListener('click', function (e) {
+    var h = e.target.closest('.dtable th[data-sort]'); if (!h) return;
+    $('#sort').value = h.dataset.sort; render();
+  });
+
+  /* ───────── filtros ───────── */
+  var FILTERS = ['fTipo', 'fEstado', 'fCliente', 'fRubro', 'fServicio'];
+  function values(k) {
+    var set = {};
+    all().forEach(function (d) { var v = (d.ficha || {})[k]; (Array.isArray(v) ? v : [v]).forEach(function (x) { if (x) set[x] = 1; }); });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, 'es'); });
+  }
+  function fillSelect(id) {
+    var sel = $('#' + id), k = sel.dataset.k, cur = sel.value, label = sel.options[0].text;
+    var opts = k === 'tipo' || k === 'estado' || k === 'servicios'
+      ? data.opciones[k].concat(values(k).filter(function (v) { return data.opciones[k].indexOf(v) < 0; })) : values(k);
+    sel.innerHTML = '<option value="">' + label + '</option>' + opts.map(function (v) { return '<option' + (v === cur ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('');
+  }
+  function haystack(d) {
+    var f = d.ficha || {};
+    return norm([d.title, d.file, f.cliente, f.tipo, f.estado, f.responsable, f.valor, f.fondo, f.forma].concat(LISTS.map(function (k) { return (f[k] || []).join(' '); }), d.outline || []).join(' '));
+  }
+  function matches(d) {
+    var f = d.ficha || {}, q = norm($('#q').value).split(/\s+/).filter(Boolean), h = haystack(d);
+    if (!q.every(function (w) { return h.indexOf(w) >= 0; })) return false;
+    return FILTERS.every(function (id) {
+      var sel = $('#' + id), v = sel.value, k = sel.dataset.k;
+      if (!v) return true;
+      var fv = f[k];
+      return Array.isArray(fv) ? fv.indexOf(v) >= 0 : fv === v;
+    });
+  }
+  function sorted(list) {
+    var k = $('#sort').value;
+    return list.slice().sort(function (a, b) {
+      if (k === 'mtime') return b.mtime - a.mtime;
+      if (k === 'fecha') return String((b.ficha || {}).fecha).localeCompare(String((a.ficha || {}).fecha));
+      var av = k === 'title' ? a.title : (a.ficha || {}).cliente || '~', bv = k === 'title' ? b.title : (b.ficha || {}).cliente || '~';
+      return av.localeCompare(bv, 'es');
+    });
+  }
+  function render() {
+    FILTERS.forEach(fillSelect);
+    FILTERS.forEach(function (id) { $('#' + id).classList.toggle('on', !!$('#' + id).value); });
+    var active = $('#q').value || FILTERS.some(function (id) { return $('#' + id).value; });
+    $('#clear').hidden = !active;
+    var list = sorted(data.presentaciones.filter(matches));
+    $('#nP').textContent = data.presentaciones.length; $('#nT').textContent = data.plantillas.length; $('#countT').textContent = data.plantillas.length;
+    $('#count').textContent = active ? list.length + ' de ' + data.presentaciones.length : data.presentaciones.length;
+    drawToggles();
+    $('#decks').className = MODE.p === 'tabla' && list.length ? 'tablewrap' : 'grid';
+    $('#templates').className = MODE.t === 'tabla' ? 'tablewrap' : 'grid';
+    $('#decks').innerHTML = list.length ? (MODE.p === 'tabla' ? table(list, false) : list.map(function (d) { return card(d, false); }).join(''))
+      : '<div class="empty">' + (data.presentaciones.length ? 'Ninguna presentación coincide con la búsqueda o los filtros.' : 'Aún no hay presentaciones. Crea una con <b>+ Nueva presentación</b>, desde una plantilla o con el buscador con IA.') + '</div>';
+    var tpls = sorted(data.plantillas);
+    $('#templates').innerHTML = MODE.t === 'tabla' ? table(tpls, true) : (tpls.map(function (d) { return card(d, true); }).join('') || '<div class="empty">Ninguna plantilla coincide.</div>');
+    $('#from').innerHTML = '<optgroup label="Plantillas">' + data.plantillas.map(function (p) { return '<option value="' + esc(p.path) + '">' + esc(p.title) + ' (' + p.slides + ' slides)</option>'; }).join('') + '</optgroup>' +
+      (data.presentaciones.length ? '<optgroup label="Presentaciones">' + data.presentaciones.map(function (p) { return '<option value="' + esc(p.path) + '">' + esc(p.title) + '</option>'; }).join('') + '</optgroup>' : '');
+    var cb = $('#cbase'), cbv = cb.value;
+    cb.innerHTML = '<option value="">Estilo base: automático</option><optgroup label="Plantillas">' + data.plantillas.map(function (p) { return '<option value="' + esc(p.path) + '">' + esc(p.title) + '</option>'; }).join('') + '</optgroup>' +
+      (data.presentaciones.length ? '<optgroup label="Presentaciones">' + data.presentaciones.map(function (p) { return '<option value="' + esc(p.path) + '">' + esc(p.title) + '</option>'; }).join('') + '</optgroup>' : '');
+    cb.value = cbv;
+    $('#dlClientes').innerHTML = values('cliente').map(function (v) { return '<option value="' + esc(v) + '">'; }).join('');
+    $('#dlResp').innerHTML = values('responsable').map(function (v) { return '<option value="' + esc(v) + '">'; }).join('');
+    ['rubros', 'segmentos', 'estudios', 'productos', 'etiquetas'].forEach(function (k) { $('#dl-' + k).innerHTML = values(k).map(function (v) { return '<option value="' + esc(v) + '">'; }).join(''); });
+  }
+  function load() { return api('GET', '/api/list').then(function (j) { data = j; render(); }); }
+  var qT;
+  $('#q').addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(render, 120); });
+  FILTERS.concat('sort').forEach(function (id) { $('#' + id).addEventListener('change', render); });
+  $('#clear').onclick = function () { $('#q').value = ''; FILTERS.forEach(function (id) { $('#' + id).value = ''; }); render(); };
+
+  /* ───────── nueva / duplicar / renombrar ───────── */
+  var dlg = $('#dlg'), mode = null, target = null;
+  function open(m, path, title) {
+    mode = m; target = path;
+    $('#fromWrap').style.display = m === 'new' ? '' : 'none';
+    $('#dlgTitle').textContent = { new: 'Nueva presentación', dup: 'Duplicar presentación', ren: 'Renombrar' }[m];
+    $('#dlgText').textContent = { new: 'Elige una base (plantilla o presentación existente) y un nombre.', dup: 'Se creará una copia independiente, con su ficha.', ren: 'Cambia el nombre visible (y del PDF).' }[m];
+    $('#dlgOk').textContent = m === 'ren' ? 'Guardar' : 'Crear';
+    $('#name').value = m === 'dup' ? title + ' (copia)' : m === 'ren' ? title : '';
+    if (m === 'new' && path) $('#from').value = path;
+    dlg.showModal(); $('#name').focus();
+  }
+  dlg.addEventListener('close', function () {
+    if (dlg.returnValue !== 'ok') return;
+    var name = $('#name').value.trim(); if (!name) return;
+    var p = mode === 'ren' ? api('POST', '/api/rename', { path: target, title: name }).then(load)
+      : api('POST', '/api/new', { from: mode === 'new' ? $('#from').value : target, title: name }).then(function (r) { location.href = '/' + r.path; });
+    p.catch(function (e) { alert(e.message); });
+  });
+  $('#newBtn').onclick = function () { open('new'); };
+
+  /* ───────── ficha ───────── */
+  var fdlg = $('#fdlg'), fPath = null;
+  function tagBox(box) {
+    var k = box.dataset.k;
+    box.innerHTML = '<input list="dl-' + k + '" placeholder="Escribe y presiona Enter">';
+    var inp = $('input', box);
+    box._vals = [];
+    box._set = function (arr) { box._vals = (arr || []).slice(); draw(); };
+    function draw() {
+      $$('.tag', box).forEach(function (t) { t.remove(); });
+      box._vals.forEach(function (v, i) {
+        var t = document.createElement('span'); t.className = 'tag';
+        t.innerHTML = esc(v) + '<button type="button" data-i="' + i + '" title="Quitar">×</button>';
+        box.insertBefore(t, inp);
+      });
+    }
+    function add() {
+      inp.value.split(/[,;]/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (v) {
+        if (box._vals.map(norm).indexOf(norm(v)) < 0) box._vals.push(v);
+      });
+      inp.value = ''; draw();
+    }
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
+      else if (e.key === 'Backspace' && !inp.value && box._vals.length) { box._vals.pop(); draw(); }
+    });
+    inp.addEventListener('change', function () { if (inp.value && !/[,;]$/.test(inp.value)) add(); });
+    inp.addEventListener('blur', add);
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i]');
+      if (b) { box._vals.splice(+b.dataset.i, 1); draw(); } else inp.focus();
+    });
+  }
+  $$('#fdlg .tags').forEach(tagBox);
+  function setForm(f) {
+    var form = $('#fForm');
+    ['cliente', 'responsable', 'tipo', 'estado', 'fecha', 'valor', 'fondo', 'forma'].forEach(function (k) {
+      var el = form.elements[k];
+      if (el.tagName === 'SELECT' && f[k] && !$$('option', el).some(function (o) { return o.value === f[k]; })) el.insertAdjacentHTML('beforeend', '<option>' + esc(f[k]) + '</option>');
+      el.value = f[k] || '';
+    });
+    $$('#fServicios input').forEach(function (c) { c.checked = (f.servicios || []).indexOf(c.value) >= 0; });
+    $$('#fdlg .tags').forEach(function (b) { b._set(f[b.dataset.k]); });
+  }
+  function getForm() {
+    var form = $('#fForm'), f = {};
+    ['cliente', 'responsable', 'tipo', 'estado', 'fecha', 'valor', 'fondo', 'forma'].forEach(function (k) { f[k] = form.elements[k].value.trim(); });
+    f.servicios = $$('#fServicios input:checked').map(function (c) { return c.value; });
+    $$('#fdlg .tags').forEach(function (b) { var i = $('input', b); if (i.value.trim()) { b._vals.push(i.value.trim()); i.value = ''; } f[b.dataset.k] = b._vals.slice(); });
+    f.plantilla = (fCur && fCur.plantilla) || '';
+    return f;
+  }
+  var fCur = null;
+  function openFicha(path) {
+    var d = byPath(path); if (!d) return;
+    fPath = path; fCur = d.ficha || {};
+    $('#fTitle').textContent = d.title + ' · ' + d.slides + ' slides';
+    var form = $('#fForm');
+    form.elements.tipo.innerHTML = '<option value="">—</option>' + data.opciones.tipo.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join('');
+    form.elements.estado.innerHTML = '<option value="">—</option>' + data.opciones.estado.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join('');
+    var serv = data.opciones.servicios.concat(values('servicios').filter(function (v) { return data.opciones.servicios.indexOf(v) < 0; }));
+    $('#fServicios').innerHTML = serv.map(function (v) { return '<label><input type="checkbox" value="' + esc(v) + '">' + esc(v) + '</label>'; }).join('');
+    setForm(fCur);
+    $('#fMsg').textContent = '';
+    fdlg.showModal();
+  }
+  fdlg.addEventListener('close', function () {
+    if (fdlg.returnValue !== 'ok' || !fPath) return;
+    api('POST', '/api/ficha', { path: fPath, ficha: getForm() }).then(load).catch(function (e) { alert(e.message); });
+  });
+  $('#fAi').onclick = function () {
+    var b = this, msg = $('#fMsg'), t0 = Date.now();
+    b.disabled = true;
+    var tick = setInterval(function () { msg.textContent = 'Claude está leyendo la presentación… ' + Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000);
+    msg.textContent = 'Claude está leyendo la presentación…';
+    api('POST', '/api/ficha/ai', { path: fPath, ficha: getForm() }).then(function (r) {
+      setForm(r.ficha);
+      $$('#fForm input, #fForm textarea, #fForm select, #fdlg .tags').forEach(function (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
+      msg.textContent = 'Listo: revisa, ajusta y guarda.';
+    }).catch(function (e) { msg.textContent = e.message; })
+      .then(function () { clearInterval(tick); b.disabled = false; });
+  };
+
+  /* ───────── acciones de tarjetas ───────── */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return;
+    var c = b.closest('[data-p]'); if (!c) return;
+    var a = b.dataset.a, p = c.dataset.p, t = c.dataset.t;
+    var det = b.closest('details'); if (det) det.open = false;
+    if (a === 'use') open('new', p);
+    else if (a === 'ficha') openFicha(p);
+    else if (a === 'dup') open('dup', p, t);
+    else if (a === 'ren') open('ren', p, t);
+    else if (a === 'del' && confirm('¿Eliminar “' + t + '”? Se moverá a la papelera (' + p.split('/')[0] + '/.papelera)')) api('POST', '/api/delete', { path: p }).then(load).catch(function (e) { alert(e.message); });
+    else if (a === 'totpl') {
+      var nt = prompt('Nombre de la nueva plantilla:', 'Plantilla ' + t); if (!nt) return;
+      api('POST', '/api/plantillas/desde', { path: p, titulo: nt }).then(function () { return load(); }).then(function () { location.hash = '#plantillas'; }).catch(function (e) { alert(e.message); });
+    }
+    else if (a === 'base') open('new', p);
+    else if (a === 'aibase') { setTab('crear'); if (!$('#cbrief').value) $('#cbrief').value = $('#aiq').value; $('#cbase').value = p; $('#cbrief').focus(); $('.aisearch').scrollIntoView({ behavior: 'smooth' }); }
+  });
+  document.addEventListener('click', function (e) { $$('details.more[open]').forEach(function (d) { if (!d.contains(e.target)) d.open = false; }); });
+
+  /* ───────── buscador con IA ───────── */
+  var busy = false;
+  function scoreColor(n) { return n >= 85 ? '#0c7a4c' : n >= 70 ? '#1f8a5a' : n >= 50 ? '#c47a00' : '#9a9aa6'; }
+  function aiSearch() {
+    var q = $('#aiq').value.trim(); if (!q || busy) return $('#aiq').focus();
+    busy = true; $('#aiGo').disabled = true;
+    var box = $('#results'), t0 = Date.now();
+    box.innerHTML = '<div class="status"><span class="spin"></span><span id="st">Claude está revisando ' + all().length + ' presentaciones y plantillas…</span></div>';
+    var tick = setInterval(function () { var s = $('#st'); if (s) s.textContent = 'Claude está revisando ' + all().length + ' presentaciones y plantillas… ' + Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000);
+    api('POST', '/api/buscar', { query: q }).then(function (r) {
+      box.innerHTML = (r.resumen ? '<div class="sum">' + esc(r.resumen) + '</div>' : '') +
+        (r.resultados.length ? '<div class="rgrid">' + r.resultados.map(function (x) {
+          var isTpl = x.path.indexOf('plantillas/') === 0, f = x.ficha || {};
+          return '<article class="rcard" data-p="' + esc(x.path) + '" data-t="' + esc(x.title) + '"><div class="thumb">' +
+            '<span class="score" style="--c:' + scoreColor(x.calce) + '">' + x.calce + '% calce</span>' + thumb(x).replace(/^<a class="thumb"/, '<a class="thumb" style="position:absolute;inset:0"') + '</div>' +
+            '<div class="body"><b>' + esc(x.title) + '</b>' +
+            '<p class="sub" style="color:var(--mute);margin-top:-4px">' + [isTpl ? 'Plantilla' : 'Presentación', f.cliente, x.slides + ' slides'].filter(Boolean).map(esc).join(' · ') + '</p>' +
+            '<p><span class="lbl">Por qué calza:</span> ' + esc(x.razon) + '</p>' +
+            (x.ajustes ? '<p><span class="lbl">Qué ajustar:</span> ' + esc(x.ajustes) + '</p>' : '') +
+            (x.slides_utiles.length ? '<div class="chips">' + x.slides_utiles.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' : '') +
+            '</div><div class="actions"><button class="btn sm primary" data-a="base">Duplicar como base</button><button class="btn sm ai" data-a="aibase">✨ Crear con IA desde esta</button><a class="btn sm" href="/' + esc(x.path) + '">Abrir</a>' + (isTpl ? '' : '<button class="btn sm" data-a="ficha">Ficha</button>') + '</div></article>';
+        }).join('') + '</div>' : '<div class="sum">No encontré presentaciones que sirvan como base. Prueba con una plantilla o crea una nueva.</div>');
+    }).catch(function (e) {
+      box.innerHTML = '<div class="sum">⚠️ ' + esc(e.message) + '</div>';
+    }).then(function () { clearInterval(tick); busy = false; $('#aiGo').disabled = false; });
+  }
+  $('#aiGo').onclick = aiSearch;
+  $('#aiq').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSearch(); } });
+  $$('.examples [data-ex]').forEach(function (b) { b.onclick = function () { $('#aiq').value = b.dataset.ex; $('#aiq').focus(); }; });
+
+  /* ───────── pestañas ───────── */
+  function setTab(t) {
+    $$('.tabs [data-tab]').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === t); });
+    $$('.pane').forEach(function (p) { p.hidden = p.dataset.pane !== t; });
+  }
+  $$('.tabs [data-tab]').forEach(function (b) { b.onclick = function () { setTab(b.dataset.tab); }; });
+
+  /* ───────── crear presentación con IA ───────── */
+  var cFiles = [];
+  function kb(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function shrinkImage(file) {
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onerror = rej;
+      fr.onload = function () {
+        if (/gif/.test(file.type)) return res(fr.result);
+        var img = new Image(); img.onerror = rej;
+        img.onload = function () {
+          var k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+          if (k === 1 && file.size < 4e6 && /jpeg|png|webp/.test(file.type)) return res(fr.result);
+          var c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          res(file.type === 'image/png' ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', .86));
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function addFiles(list) {
+    [].slice.call(list || []).forEach(function (f) {
+      if (cFiles.length >= 10) return alert('Máximo 10 adjuntos');
+      if (f.type === 'image/svg+xml') return alert('SVG no soportado: expórtalo como PNG');
+      if (/^image\//.test(f.type)) shrinkImage(f).then(function (url) { var m = url.match(/^data:([^;]+);base64,(.*)$/); cFiles.push({ name: f.name || 'imagen.png', type: m[1], data: m[2], size: m[2].length * .75, thumb: url }); drawFiles(); });
+      else if (f.type === 'application/pdf') {
+        if (f.size > 20 * 1048576) return alert(f.name + ' supera 20 MB');
+        var fr = new FileReader(); fr.onload = function () { cFiles.push({ name: f.name, type: f.type, data: fr.result.split(',')[1], size: f.size }); drawFiles(); }; fr.readAsDataURL(f);
+      } else if (/^text\/|json|csv/.test(f.type) || /\.(txt|csv|md|json|tsv)$/i.test(f.name)) {
+        f.text().then(function (t) { var d = $('#cdata'); d.value = (d.value ? d.value + '\n\n' : '') + '# ' + f.name + '\n' + t; $('.cdata').open = true; });
+      } else alert('Tipo no soportado: ' + f.name);
+    });
+  }
+  function drawFiles() {
+    $('#cchips').innerHTML = cFiles.map(function (f, i) {
+      return '<span class="achip">' + (f.thumb ? '<img src="' + f.thumb + '" alt="">' : '<b class="pdf">PDF</b>') + '<span>' + esc(f.name) + ' · ' + kb(f.size) + '</span><button type="button" data-rmf="' + i + '" title="Quitar">×</button></span>';
+    }).join('');
+  }
+  $('#cchips').addEventListener('click', function (e) { var b = e.target.closest('[data-rmf]'); if (b) { cFiles.splice(+b.dataset.rmf, 1); drawFiles(); } });
+  $('#cfile').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+  var aiBox = $('.aisearch');
+  aiBox.addEventListener('dragover', function (e) { if ($('[data-pane=crear]').hidden) return; e.preventDefault(); aiBox.classList.add('drag'); });
+  aiBox.addEventListener('dragleave', function (e) { if (!aiBox.contains(e.relatedTarget)) aiBox.classList.remove('drag'); });
+  aiBox.addEventListener('drop', function (e) { if ($('[data-pane=crear]').hidden) return; e.preventDefault(); aiBox.classList.remove('drag'); addFiles(e.dataTransfer.files); });
+  $('#cbrief').addEventListener('paste', function (e) { var fs = [].slice.call(e.clipboardData.files || []); if (fs.length) { e.preventDefault(); addFiles(fs); } });
+
+  var cJob = null;
+  function drawJob(j) {
+    var pct = j.total ? Math.round(j.hechas / j.total * 100) : (j.fase === 'listo' ? 100 : 4);
+    var icons = { pendiente: '○', generando: '◐', listo: '✓', error: '!' };
+    var fases = { 'en cola': 'Preparando…', planificando: 'Diseñando la estructura…', generando: 'Generando slides (' + j.hechas + ' de ' + j.total + ')…', armando: 'Armando la presentación…', listo: 'Presentación lista', error: 'No se pudo crear' };
+    var secs = Math.round((Date.now() - j.inicio) / 1000);
+    $('#cprog').innerHTML = '<div class="prog"><h3>' + (j.fase === 'listo' || j.fase === 'error' ? '' : '<span class="spin"></span>') + esc(fases[j.fase] || j.fase) + (j.titulo ? ' · ' + esc(j.titulo) : '') + '</h3>' +
+      '<p class="est">' + (j.estructura ? esc(j.estructura) : 'Puede tardar 1–3 minutos según el largo.') + ' · ' + secs + ' s</p>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + (s.accion === 'reusar' ? 'Reusada: ' : 'Molde: ') + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
+      (j.fase === 'listo' ? '<div class="done"><a class="btn primary" href="/' + esc(j.path) + '">Abrir y editar</a><span style="font-size:13px;color:var(--mute)">También queda en “Mis presentaciones”, con su ficha.</span></div>' : '') +
+      (j.error ? '<p style="color:#c00;font-size:13px;margin:10px 0 0">' + esc(j.error) + '</p>' : '') +
+      '<div class="log">' + j.pasos.map(esc).join('<br>') + '</div></div>';
+  }
+  function pollJob(id) {
+    api('GET', '/api/crear?id=' + id).then(function (j) {
+      drawJob(j);
+      if (j.fase === 'listo' || j.fase === 'error') { cJob = null; $('#cGo').disabled = false; if (j.fase === 'listo') load(); }
+      else setTimeout(function () { pollJob(id); }, 1500);
+    }).catch(function (e) { $('#cprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; cJob = null; $('#cGo').disabled = false; });
+  }
+  $('#cGo').onclick = function () {
+    var brief = $('#cbrief').value.trim();
+    if (!brief) return $('#cbrief').focus();
+    if (cJob) return;
+    $('#cGo').disabled = true;
+    $('#cprog').innerHTML = '<div class="prog"><h3><span class="spin"></span>Enviando…</h3></div>';
+    api('POST', '/api/crear', { brief: brief, titulo: $('#ctitulo').value, base: $('#cbase').value, largo: $('#clargo').value, data: $('#cdata').value, web: $('#cweb').checked,
+      files: cFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }) })
+      .then(function (r) { cJob = r.id; pollJob(r.id); })
+      .catch(function (e) { $('#cprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; $('#cGo').disabled = false; });
+  };
+
+  /* ───────── vistas (sidebar) ───────── */
+  var TITLES = { presentaciones: 'Presentaciones', plantillas: 'Plantillas base', diseno: 'Diseño & estilo' };
+  function route() {
+    var v = (location.hash || '#presentaciones').slice(1); if (!TITLES[v]) v = 'presentaciones';
+    $$('.view').forEach(function (x) { x.hidden = x.dataset.view !== v; });
+    $$('.nav a').forEach(function (a) { a.classList.toggle('on', a.dataset.v === v); });
+    $('#vTitle').textContent = TITLES[v];
+    $('#newBtn').hidden = v !== 'presentaciones';
+    $('#newTplBtn').hidden = v !== 'plantillas';
+    $('#tips').hidden = v !== 'presentaciones';
+    if (v === 'diseno') loadEstilo();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', route);
+  $('#newTplBtn').onclick = function () { $('#tFile').click(); };
+  api('GET', '/api/ai/status').then(function (j) {
+    var el = $('#aist'); el.className = 'aist ' + (j.ready ? 'ok' : 'err');
+    $('span', el).textContent = j.ready ? (j.provider === 'api' ? 'IA: API Anthropic' : 'IA: tu cuenta de Claude') : 'IA no disponible';
+    el.title = j.detail || '';
+  }).catch(function () {});
+
+  /* ───────── progreso genérico de trabajos IA ───────── */
+  function progressHtml(j, opt) {
+    var pct = j.total ? Math.round(j.hechas / j.total * 100) : (j.fase === 'listo' ? 100 : 4);
+    var icons = { pendiente: '○', generando: '◐', listo: '✓', error: '!' };
+    var secs = Math.round((Date.now() - j.inicio) / 1000);
+    var fase = (opt.fases[j.fase] || j.fase).replace('{h}', j.hechas).replace('{t}', j.total);
+    return '<div class="prog"' + (opt.light ? ' style="border:1px solid var(--line)"' : '') + '><h3>' + (j.fase === 'listo' || j.fase === 'error' ? '' : '<span class="spin"></span>') + esc(fase) + (j.titulo ? ' · ' + esc(j.titulo) : '') + '</h3>' +
+      '<p class="est">' + (j.estructura ? esc(j.estructura) : esc(opt.espera)) + ' · ' + secs + ' s</p>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
+      (j.fase === 'listo' ? '<div class="done" data-p="' + esc(j.path) + '" data-t="' + esc(j.titulo || '') + '"><a class="btn primary" href="/' + esc(j.path) + '">' + opt.abrir + '</a><button class="btn" data-a="ficha">Ver ficha</button></div>' : '') +
+      (j.error ? '<p style="color:#c00;font-size:13px;margin:10px 0 0">' + esc(j.error) + '</p>' : '') +
+      '<div class="log">' + j.pasos.map(esc).join('<br>') + '</div></div>';
+  }
+
+  /* ───────── nueva plantilla desde archivo ───────── */
+  var tFiles = [], tBusy = false;
+  function drawT() {
+    $('#tChips').innerHTML = tFiles.map(function (f, i) {
+      var badge = f.thumb ? '<img src="' + f.thumb + '" alt="">' : '<b class="pdf' + (/html/.test(f.type) ? ' html' : '') + '">' + (/html/.test(f.type) ? 'HTML' : 'PDF') + '</b>';
+      return '<span class="lchip">' + badge + '<span>' + esc(f.name) + ' · ' + kb(f.size) + '</span><button type="button" data-rmt="' + i + '">×</button></span>';
+    }).join('');
+  }
+  function addT(list) {
+    [].slice.call(list || []).forEach(function (f) {
+      var isHtml = /html/.test(f.type) || /\.html?$/i.test(f.name);
+      if (f.type === 'application/pdf' || isHtml) {
+        if (f.size > 60 * 1048576) return alert(f.name + ' supera 60 MB');
+        var fr = new FileReader(); fr.onload = function () { tFiles.push({ name: f.name, type: isHtml ? 'text/html' : f.type, data: fr.result.split(',')[1], size: f.size }); drawT(); }; fr.readAsDataURL(f);
+      } else if (/^image\/(png|jpeg|webp)$/.test(f.type)) {
+        shrinkImage(f).then(function (url) { var m = url.match(/^data:([^;]+);base64,(.*)$/); tFiles.push({ name: f.name, type: m[1], data: m[2], size: m[2].length * .75, thumb: url }); drawT(); });
+      } else alert('Formato no soportado: ' + f.name + '. Para PowerPoint o Keynote, expórtalo primero a PDF.');
+    });
+  }
+  $('#tDrop').onclick = function () { $('#tFile').click(); };
+  $('#tFile').addEventListener('change', function () { addT(this.files); this.value = ''; if (location.hash !== '#plantillas') location.hash = '#plantillas'; });
+  ['dragover', 'dragenter'].forEach(function (ev) { $('#tDrop').addEventListener(ev, function (e) { e.preventDefault(); $('#tDrop').classList.add('drag'); }); });
+  $('#tDrop').addEventListener('dragleave', function () { $('#tDrop').classList.remove('drag'); });
+  $('#tDrop').addEventListener('drop', function (e) { e.preventDefault(); $('#tDrop').classList.remove('drag'); addT(e.dataTransfer.files); });
+  $('#tChips').addEventListener('click', function (e) { var b = e.target.closest('[data-rmt]'); if (b) { tFiles.splice(+b.dataset.rmt, 1); drawT(); } });
+  var TOPT = { fases: { 'en cola': 'Preparando…', preparando: 'Leyendo el archivo…', analizando: 'Analizando la presentación…', generando: 'Replicando slides ({h} de {t})…', armando: 'Armando la plantilla…', listo: 'Plantilla lista', error: 'No se pudo crear la plantilla' }, espera: 'Puede tardar 2–5 minutos según el número de páginas.', abrir: 'Abrir y revisar', light: true };
+  function pollT(id) {
+    api('GET', '/api/plantillas/importar?id=' + id).then(function (j) {
+      $('#tprog').innerHTML = progressHtml(j, TOPT);
+      if (j.fase === 'listo' || j.fase === 'error') { tBusy = false; $('#tGo').disabled = false; if (j.fase === 'listo') { tFiles = []; drawT(); load(); } }
+      else setTimeout(function () { pollT(id); }, 1500);
+    }).catch(function (e) { $('#tprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; tBusy = false; $('#tGo').disabled = false; });
+  }
+  $('#tGo').onclick = function () {
+    if (tBusy) return;
+    if (!tFiles.length) return $('#tFile').click();
+    tBusy = true; this.disabled = true;
+    $('#tprog').innerHTML = '<div class="prog" style="border:1px solid var(--line)"><h3><span class="spin"></span>Subiendo archivo…</h3></div>';
+    api('POST', '/api/plantillas/importar', { nombre: $('#tNombre').value, notas: $('#tNotas').value, files: tFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }) })
+      .then(function (r) { pollT(r.id); })
+      .catch(function (e) { $('#tprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; tBusy = false; $('#tGo').disabled = false; });
+  };
+
+  /* ───────── diseño & estilo ───────── */
+  var est = null;
+  var BRAND = [['var(--red)', 'Rojo marca'], ['var(--purple)', 'Morado'], ['var(--teal)', 'Turquesa'], ['var(--mint)', 'Menta'], ['var(--lila)', 'Lila'], ['var(--ink)', 'Texto']];
+  function brandHex(v) { var m = String(v).match(/^var\((--[a-z]+)\)$/); if (!m || !est) return v; var c = est.colores.filter(function (x) { return x.k === m[1]; })[0]; return c ? c.v : '#000000'; }
+  function hex6(v) { v = String(v || '#000000'); return /^#[0-9a-f]{3}$/i.test(v) ? '#' + v.slice(1).split('').map(function (c) { return c + c; }).join('') : v; }
+  function previewFont(f) {
+    var id = 'pf-' + f.replace(/ /g, '');
+    if (!document.getElementById(id)) { var l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + f.replace(/ /g, '+') + ':wght@400;700&display=swap'; document.head.appendChild(l); }
+    $('#fontPrev').style.fontFamily = '"' + f + '", sans-serif';
+  }
+  function drawEstilo() {
+    $('#dColors').innerHTML = est.colores.map(function (c) {
+      return '<label class="cfield"><input type="color" data-c="' + c.k + '" value="' + hex6(c.v) + '"><span><b>' + esc(c.label) + '</b><input type="text" data-ct="' + c.k + '" value="' + esc(c.v) + '" spellcheck="false"></span></label>';
+    }).join('');
+    $('#dFont').innerHTML = est.fuentes.map(function (f) { return '<option' + (f === est.font ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join('');
+    previewFont(est.font);
+    $('#lC').src = est.logos.color.url + '?v=' + Math.round(est.logos.color.mtime);
+    $('#lW').src = est.logos.blanco.url + '?v=' + Math.round(est.logos.blanco.mtime);
+    $('#guia').value = est.guia;
+    $('#dTemas').innerHTML = '<div class="trow"><span class="h">Plantilla</span><span class="h">Principal</span><span class="h">Secundario</span><span class="h">Terciario</span></div>' + est.temas.map(function (t) {
+      return '<div class="trow" data-tp="' + esc(t.path) + '"><span>' + esc(t.title) + '</span>' + ['--accent', '--accent2', '--accent3'].map(function (k) {
+        var v = t.vars[k] || '', isBrand = BRAND.some(function (b) { return b[0] === v; });
+        return '<span class="tsel" data-k="' + k + '"><select>' + BRAND.map(function (b) { return '<option value="' + b[0] + '"' + (b[0] === v ? ' selected' : '') + '>' + b[1] + '</option>'; }).join('') + '<option value="custom"' + (isBrand ? '' : ' selected') + '>Propio</option></select>' +
+          '<input type="color" value="' + hex6(isBrand ? brandHex(v) : v) + '"' + (isBrand ? ' disabled' : '') + '></span>';
+      }).join('') + '</div>';
+    }).join('');
+    var v = Date.now();
+    $('#dPrev').innerHTML = data.plantillas.map(function (d) { return '<a class="thumb" href="/' + esc(d.path) + '"><iframe tabindex="-1" src="/' + esc(d.path) + '?thumb=1&v=' + v + '"></iframe></a>'; }).join('');
+  }
+  function loadEstilo() { return api('GET', '/api/estilo').then(function (j) { est = j; drawEstilo(); }).catch(function (e) { alert(e.message); }); }
+  function saved(id, j, msg) { est = j; drawEstilo(); var m = $('#' + id); m.textContent = msg || 'Guardado ✓'; m.className = 'msg ok'; setTimeout(function () { m.textContent = ''; }, 3500); }
+  $('#dColors').addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset.c) $('[data-ct="' + t.dataset.c + '"]').value = t.value;
+    if (t.dataset.ct && /^#[0-9a-f]{6}$/i.test(t.value)) $('[data-c="' + t.dataset.ct + '"]').value = t.value;
+  });
+  $('#sColors').onclick = function () {
+    var c = {}; $$('#dColors [data-ct]').forEach(function (i) { c[i.dataset.ct] = i.value.trim(); });
+    api('POST', '/api/estilo', { colores: c }).then(function (j) { saved('mColors', j, 'Guardado ✓ — aplica a todas las presentaciones'); }).catch(function (e) { alert(e.message); });
+  };
+  $('#dFont').addEventListener('change', function () { previewFont(this.value); });
+  $('#sFont').onclick = function () { api('POST', '/api/estilo', { font: $('#dFont').value }).then(function (j) { saved('mFont', j); }).catch(function (e) { alert(e.message); }); };
+  $('#dTemas').addEventListener('change', function (e) {
+    var sel = e.target.closest('select'); if (!sel) return;
+    var col = sel.nextElementSibling;
+    col.disabled = sel.value !== 'custom';
+    if (sel.value !== 'custom') col.value = hex6(brandHex(sel.value));
+  });
+  $('#sTemas').onclick = function () {
+    var temas = $$('#dTemas [data-tp]').map(function (row) {
+      var vars = {};
+      $$('.tsel', row).forEach(function (t) { var s = $('select', t).value; vars[t.dataset.k] = s === 'custom' ? $('input', t).value : s; });
+      return { path: row.dataset.tp, vars: vars };
+    });
+    api('POST', '/api/estilo', { temas: temas }).then(function (j) { saved('mTemas', j); }).catch(function (e) { alert(e.message); });
+  };
+  $('#sGuia').onclick = function () { api('POST', '/api/estilo', { guia: $('#guia').value }).then(function (j) { saved('mGuia', j, 'Guardada ✓ — Claude la usará desde ahora'); }).catch(function (e) { alert(e.message); }); };
+  $$('[data-logo]').forEach(function (inp) {
+    inp.addEventListener('change', function () {
+      var f = inp.files[0]; if (!f) return;
+      if (f.type !== 'image/png') { inp.value = ''; return alert('El logo debe ser PNG (idealmente con fondo transparente).'); }
+      var fr = new FileReader();
+      fr.onload = function () { api('POST', '/api/estilo', { logo: { cual: inp.dataset.logo, data: fr.result } }).then(function (j) { saved('mLogo', j, 'Logo reemplazado ✓'); }).catch(function (e) { alert(e.message); }); };
+      fr.readAsDataURL(f); inp.value = '';
+    });
+  });
+
+  load().then(route);
+})();
+</script>
+</body>
+</html>
