@@ -46,6 +46,15 @@ if (storage.mode === 'local') {
 }
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 
+// ── Config pública para el frontend ──
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || null,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+    allowedEmails: (process.env.ALLOWED_EMAILS || '').split(',').map((e) => e.trim()).filter(Boolean),
+  });
+});
+
 // ── Presentaciones desde Supabase (solo modo supabase) ──
 app.get('/presentaciones/:file', async (req, res, next) => {
   if (storage.mode === 'local') return next();
