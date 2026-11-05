@@ -67,10 +67,13 @@ App para crear/editar presentaciones comerciales de Almabrands como HTML y expor
 ## Home con sidebar
 Vistas por hash: `#presentaciones` (buscar/crear con IA + lista y filtros), `#plantillas` (importar + lista), `#diseno` (Diseño & estilo).
 
-## Plantillas desde archivo (`plantilla.js`)
-- `POST /api/plantillas/importar {files, nombre, notas}` → trabajo; `GET /api/plantillas/importar?id=`.
-- PDF: poppler genera miniaturas + texto por página → Claude analiza (tema de color, páginas representativas ≤ 24, ficha) → replica cada página como slide (imagen de la página + texto + molde técnico de una plantilla existente). Antes se detecta la posición exacta de cada imagen de la página (`pdfImageBoxes`, sin logos/pies repetidos) y se le pasa la lista a Claude, que marca los slots con `data-img="N"`; otras zonas con `data-crop="x,y,w,h"`. El servidor inserta la imagen original (o el recorte) como archivo de `media/`. Las fotos originales grandes que Claude no usó se agregan igual en su posición. Requiere `brew install poppler`.
-- Imágenes de slides: Claude marca las fotos con `data-crop` y se recortan con `sips` (macOS). HTML del sistema: se importa tal cual y se completa la ficha.
+## Plantillas desde archivo (`core/pdf-import.js` + `plantilla.js`)
+- Funciona igual en local y en Vercel: el **navegador** hace el trabajo pesado con pdf.js 4.10.38 (cdnjs) y orquesta pasos cortos (cada request < 4,5 MB; sin trabajos en memoria ni disco):
+  1. Miniaturas + texto por página → `POST /api/plantillas/analizar {pages:[{n,thumb,text}], nombre, notas}` → `{nombre, tema, estilo, ficha, paginas}` (≤ 24 páginas representativas).
+  2. Posición exacta de cada imagen de las páginas elegidas desde la lista de operaciones de pdf.js (`detectBoxes`: CTM, clips, form XObjects; sin logos/pies repetidos).
+  3. Por página (3 en paralelo): `POST /api/plantillas/replicar {a, page, idx, total, image(1600×900), text, boxes}` → `{html}` con slots `data-img="N"` / `data-crop="x,y,w,h"`. El navegador recorta cada foto (la imagen original del PDF sin textos encima si no está rotada ni con máscara; si no, el render a 2×), la sube con `POST /api/media {type, data}` → `{url: "../media/<hash>.ext"}` y reemplaza el slot. Las fotos originales grandes que Claude no usó se agregan en su posición.
+  4. `POST /api/plantillas/guardar {a, slides}` → `{path}` (estado "Plantilla", vía `storage`).
+- Imágenes de slides (PNG/JPG): mismo flujo, recortes desde la imagen. HTML del sistema: el navegador sube sus imágenes base64 a `/api/media` y llama `POST /api/plantillas/html {html, nombre}` (completa la ficha).
 - `POST /api/plantillas/desde {path, titulo}` convierte una presentación en plantilla. Eliminar una plantilla la mueve a `plantillas/.papelera`.
 
 ## Diseño & estilo (`estilo.js`)
@@ -92,7 +95,7 @@ Estado al 2026-11-01: solo plan. La app hoy está pensada para correr local (Mac
 | IA vía CLI de Claude Code (cuenta personal, varias cuentas con `CLAUDE_PROFILES`) | No existe en Vercel | `AI_PROVIDER=api` + `ANTHROPIC_API_KEY` (ya implementado en `ai.js`, incluida la búsqueda web con `web_search`/`web_fetch`) |
 | Descarga de fotos web (`fetchImage`) | Funciona, pero escribe en `media/` | Subir a Supabase Storage en vez de disco |
 | Trabajos largos en memoria (`crear.js`, `plantilla.js`) | Funciones con tiempo máximo y sin estado | Orquestar desde el navegador por pasos cortos: 1 llamada de plan + 1 por slide |
-| Importar PDF y extraer fotos de PDF adjuntos con poppler (`pdftoppm`, `pdftocairo`) y `sips` (macOS) | No disponibles | Renderizar páginas, detectar imágenes y recortar en el navegador con pdf.js (canvas) |
+| Importar PDF y extraer fotos de PDF adjuntos con poppler (`pdftoppm`, `pdftocairo`) y `sips` (macOS) | No disponibles | **Importar plantilla: hecho** (pdf.js en el navegador). Pendiente: fotos de PDF adjuntos en ✨ IA y Crear presentación (`expandPdfImages`) |
 | Exportar PDF con Chrome headless | Chrome no incluido | A) `puppeteer-core` + `@sparticuz/chromium` (verificar límites del plan); B) solo "Imprimir → Guardar como PDF" (ya funciona, vectorial) |
 | Diseño & estilo reescribe `core/alma.css` y `core/marca.md` | Sin escritura en disco | Guardar en BD y servir un `tema.css` dinámico |
 | Recarga en vivo al editar con Claude Code | No aplica en producción | Mantener modo local para trabajar con Claude Code |

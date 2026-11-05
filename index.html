@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/core/pdf-import.js"></script>
 <style>
 :root{--ink:#16121e;--mute:#6d6a78;--line:#e4e3ea;--bg:#f5f4f8;--red:#FF0000;--purple:#42108E;--violet:#6b4cff}
 *{box-sizing:border-box}
@@ -579,7 +580,13 @@ function initAuth() {
   function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   function api(method, url, body) {
     return fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; }); });
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var j; try { j = JSON.parse(t); } catch (e) { j = null; }
+          if (!r.ok || !j) throw new Error((j && j.error) || (r.status === 413 ? 'El envío supera el límite del servidor (4,5 MB). Usa archivos más livianos.' : r.status === 504 ? 'El servidor tardó demasiado en responder.' : 'Error ' + r.status + ' ' + r.statusText));
+          return j;
+        });
+      });
   }
   function when(ms) {
     var d = new Date(ms), now = new Date();
@@ -1034,21 +1041,20 @@ function initAuth() {
   $('#tDrop').addEventListener('drop', function (e) { e.preventDefault(); $('#tDrop').classList.remove('drag'); addT(e.dataTransfer.files); });
   $('#tChips').addEventListener('click', function (e) { var b = e.target.closest('[data-rmt]'); if (b) { tFiles.splice(+b.dataset.rmt, 1); drawT(); } });
   var TOPT = { fases: { 'en cola': 'Preparando…', preparando: 'Leyendo el archivo…', analizando: 'Analizando la presentación…', generando: 'Replicando slides ({h} de {t})…', armando: 'Armando la plantilla…', listo: 'Plantilla lista', error: 'No se pudo crear la plantilla' }, espera: 'Puede tardar 2–5 minutos según el número de páginas.', abrir: 'Abrir y revisar', light: true };
-  function pollT(id) {
-    api('GET', '/api/plantillas/importar?id=' + id).then(function (j) {
-      $('#tprog').innerHTML = progressHtml(j, TOPT);
-      if (j.fase === 'listo' || j.fase === 'error') { tBusy = false; $('#tGo').disabled = false; if (j.fase === 'listo') { tFiles = []; drawT(); load(); } }
-      else setTimeout(function () { pollT(id); }, 1500);
-    }).catch(function (e) { $('#tprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; tBusy = false; $('#tGo').disabled = false; });
-  }
   $('#tGo').onclick = function () {
     if (tBusy) return;
     if (!tFiles.length) return $('#tFile').click();
     tBusy = true; this.disabled = true;
-    $('#tprog').innerHTML = '<div class="prog" style="border:1px solid var(--line)"><h3><span class="spin"></span>Subiendo archivo…</h3></div>';
-    api('POST', '/api/plantillas/importar', { nombre: $('#tNombre').value, notas: $('#tNotas').value, files: tFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }) })
-      .then(function (r) { pollT(r.id); })
-      .catch(function (e) { $('#tprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; tBusy = false; $('#tGo').disabled = false; });
+    $('#tprog').innerHTML = '<div class="prog" style="border:1px solid var(--line)"><h3><span class="spin"></span>Leyendo archivo…</h3></div>';
+    // el navegador lee el PDF (pdf.js) y orquesta pasos cortos contra el servidor (core/pdf-import.js)
+    window.AlmaImport.run({
+      files: tFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }),
+      nombre: $('#tNombre').value, notas: $('#tNotas').value,
+      onProgress: function (j) { $('#tprog').innerHTML = progressHtml(j, TOPT); },
+    }).then(function (j) {
+      tBusy = false; $('#tGo').disabled = false;
+      if (j.fase === 'listo') { tFiles = []; drawT(); load(); }
+    });
   };
 
   /* ───────── diseño & estilo ───────── */

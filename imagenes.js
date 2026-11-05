@@ -49,6 +49,14 @@ async function externalizeAsync(html) {
   return html;
 }
 
+// guarda un buffer en el banco (disco local o Supabase Storage) → "../media/<hash>.<ext>"
+async function saveBufferAsync(buf, type) {
+  const storage = require('./storage');
+  const name = `${crypto.createHash('sha1').update(buf).digest('hex').slice(0, 16)}.${EXT[type] || 'jpg'}`;
+  await storage.writeMedia(name, buf);
+  return `../media/${name}`;
+}
+
 /* ───────── fotos dentro de un PDF ───────── */
 const nums = (s) => (String(s).match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) || []).map(Number);
 const inter = (a, b) => {
@@ -285,4 +293,4 @@ async function resolveWebImages(html) {
   return { html: out, total: tags.length, ok };
 }
 
-module.exports = { fetchImage, resolveWebImages, MEDIA, saveBuffer, externalize, externalizeAsync, boxesFromSvg, pdfImageBoxes, cropPdf, photoFromBox, cropImage, imagesFromPdf, expandPdfImages, iou };
+module.exports = { saveBufferAsync, fetchImage, resolveWebImages, MEDIA, saveBuffer, externalize, externalizeAsync, boxesFromSvg, pdfImageBoxes, cropPdf, photoFromBox, cropImage, imagesFromPdf, expandPdfImages, iou };

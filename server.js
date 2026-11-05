@@ -192,16 +192,33 @@ app.get('/api/crear', (req, res, next) => {
   try { res.json(crear.get(req.query.id)); } catch (e) { next(e); }
 });
 
-app.post('/api/plantillas/importar', async (req, res, next) => {
+// Importar plantilla: el navegador (core/pdf-import.js) orquesta pasos cortos (cada request < 4,5 MB para Vercel)
+app.post('/api/plantillas/analizar', async (req, res, next) => {
   try {
     const b = req.body;
-    const r = plantilla.start({ files: b.files, nombre: b.nombre, notas: b.notas });
-    console.log(`Importar plantilla: ${(b.files || []).map((f) => f.name).join(', ')} → trabajo ${r.id}`);
-    res.json(r);
+    console.log(`Importar plantilla: analizando ${(b.pages || []).length} páginas`);
+    res.json(await plantilla.analyze({ pages: b.pages, nombre: (b.nombre || '').trim(), notas: (b.notas || '').trim() }));
   } catch (e) { next(e); }
 });
-app.get('/api/plantillas/importar', (req, res, next) => {
-  try { res.json(plantilla.get(req.query.id)); } catch (e) { next(e); }
+app.post('/api/plantillas/replicar', async (req, res, next) => {
+  try { res.json(await plantilla.replicate(req.body)); } catch (e) { next(e); }
+});
+app.post('/api/plantillas/guardar', async (req, res, next) => {
+  try { res.json(await plantilla.save(req.body)); } catch (e) { next(e); }
+});
+app.post('/api/plantillas/html', async (req, res, next) => {
+  try { res.json(await plantilla.importHtml(req.body)); } catch (e) { next(e); }
+});
+
+// Sube una imagen al banco media/ (nombre = hash del contenido) → { url: "../media/<hash>.<ext>" }
+app.post('/api/media', async (req, res, next) => {
+  try {
+    const { type, data } = req.body || {};
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(type) || typeof data !== 'string' || !data) throw Object.assign(new Error('Imagen inválida'), { status: 400 });
+    const buf = Buffer.from(data.replace(/^data:[^,]*,/, ''), 'base64');
+    if (buf.length < 100) throw Object.assign(new Error('Imagen inválida'), { status: 400 });
+    res.json({ url: await imagenes.saveBufferAsync(buf, type) });
+  } catch (e) { next(e); }
 });
 app.post('/api/plantillas/desde', async (req, res, next) => {
   try { res.json(await plantilla.desdePresentacion(req.body.path, req.body.titulo)); } catch (e) { next(e); }

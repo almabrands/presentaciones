@@ -189,7 +189,9 @@ async function writeMedia(name, buffer) {
     }
     return;
   }
-  const { error } = await sb().storage.from('media').upload(name, buffer, { upsert: false, cacheControl: '31536000' });
+  const ext = name.split('.').pop().toLowerCase();
+  const contentType = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' }[ext] || 'application/octet-stream';
+  const { error } = await sb().storage.from('media').upload(name, buffer, { upsert: false, cacheControl: '31536000', contentType });
   // "already exists" is acceptable (same hash = same content)
   if (error && !error.message?.includes('already') && error.statusCode !== '409') throw error;
 }
