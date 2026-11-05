@@ -955,6 +955,7 @@ function initAuth() {
   aiBox.addEventListener('drop', function (e) { if ($('[data-pane=crear]').hidden) return; e.preventDefault(); aiBox.classList.remove('drag'); addFiles(e.dataTransfer.files); });
   $('#cbrief').addEventListener('paste', function (e) { var fs = [].slice.call(e.clipboardData.files || []); if (fs.length) { e.preventDefault(); addFiles(fs); } });
 
+  function costoTxt(j) { return j.costo ? ' · ' + (j.cobrado ? 'costo IA' : 'equivalente API (se usó tu plan)') + ': US$ ' + j.costo.toFixed(2) : ''; }
   var cJob = null;
   function drawJob(j) {
     var pct = j.total ? Math.round(j.hechas / j.total * 100) : (j.fase === 'listo' ? 100 : 4);
@@ -962,7 +963,7 @@ function initAuth() {
     var fases = { 'en cola': 'Preparando…', preparando: 'Preparando adjuntos…', planificando: 'Diseñando la estructura…', generando: 'Generando slides (' + j.hechas + ' de ' + j.total + ')…', armando: 'Armando la presentación…', listo: 'Presentación lista', error: 'No se pudo crear' };
     var secs = Math.round((Date.now() - j.inicio) / 1000);
     $('#cprog').innerHTML = '<div class="prog"><h3>' + (j.fase === 'listo' || j.fase === 'error' ? '' : '<span class="spin"></span>') + esc(fases[j.fase] || j.fase) + (j.titulo ? ' · ' + esc(j.titulo) : '') + '</h3>' +
-      '<p class="est">' + (j.estructura ? esc(j.estructura) : 'Puede tardar 1–3 minutos según el largo.') + ' · ' + secs + ' s</p>' +
+      '<p class="est">' + (j.estructura ? esc(j.estructura) : 'Puede tardar 1–3 minutos según el largo.') + ' · ' + secs + ' s' + costoTxt(j) + '</p>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
       (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + (s.accion === 'reusar' ? 'Reusada: ' : 'Molde: ') + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
       (j.fase === 'listo' ? '<div class="done"><a class="btn primary" href="/' + esc(j.path) + '">Abrir y editar</a><span style="font-size:13px;color:var(--mute)">También queda en “Mis presentaciones”, con su ficha.</span></div>' : '') +
@@ -1013,7 +1014,7 @@ function initAuth() {
     var secs = Math.round((Date.now() - j.inicio) / 1000);
     var fase = (opt.fases[j.fase] || j.fase).replace('{h}', j.hechas).replace('{t}', j.total);
     return '<div class="prog"' + (opt.light ? ' style="border:1px solid var(--line)"' : '') + '><h3>' + (j.fase === 'listo' || j.fase === 'error' ? '' : '<span class="spin"></span>') + esc(fase) + (j.titulo ? ' · ' + esc(j.titulo) : '') + '</h3>' +
-      '<p class="est">' + (j.estructura ? esc(j.estructura) : esc(opt.espera)) + ' · ' + secs + ' s</p>' +
+      '<p class="est">' + (j.estructura ? esc(j.estructura) : esc(opt.espera)) + ' · ' + secs + ' s' + costoTxt(j) + '</p>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
       (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
       (j.fase === 'listo' ? '<div class="done" data-p="' + esc(j.path) + '" data-t="' + esc(j.titulo || '') + '"><a class="btn primary" href="/' + esc(j.path) + '">' + opt.abrir + '</a><button class="btn" data-a="ficha">Ver ficha</button></div>' : '') +

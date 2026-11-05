@@ -63,7 +63,7 @@
     }).then(function () {
       job.fase = 'planificando';
       say('Revisando la biblioteca de slides… Claude está ' + (opt.web ? 'investigando en internet y ' : '') + 'diseñando la estructura…');
-      return A.post('/api/crear/plan', { brief: brief, data: data, files: files, base: opt.base || '', largo: +opt.largo || 0, web: !!opt.web });
+      return A.post('/api/crear/plan', { brief: brief, data: data, files: files, base: opt.base || '', largo: +opt.largo || 0, web: !!opt.web }, job);
     }).then(function (p) {
       plan = p;
       say('Biblioteca: ' + p.biblioteca.slides + ' slides de ' + p.biblioteca.decks + ' presentaciones y plantillas.');
@@ -99,7 +99,7 @@
         job.slides[k].estado = 'generando'; draw();
         // PDFs embebidos solo si esta slide lee los adjuntos (los índices se conservan)
         var fs = files.map(function (f) { return it.usa_adjuntos || f.type !== 'application/pdf' ? f : { name: f.name, type: 'text/plain', text: '' }; });
-        return A.post('/api/crear/slide', { item: it, idx: k, total: p.items.length, brief: brief, data: data, files: fs, outline: outline, investigacion: p.investigacion, base: p.base.path, ficha: p.ficha })
+        return A.post('/api/crear/slide', { item: it, idx: k, total: p.items.length, brief: brief, data: data, files: fs, outline: outline, investigacion: p.investigacion, base: p.base.path, ficha: p.ficha }, job)
           .then(function (r) { out[k] = { html: r.html }; job.slides[k].estado = 'listo'; })
           .catch(function (e) { job.slides[k].estado = 'error'; say('Slide ' + (k + 1) + ': no se pudo adaptar (' + e.message + '); quedó la slide de origen para editar a mano.'); })
           .then(function () { job.hechas++; draw(); });

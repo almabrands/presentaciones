@@ -752,7 +752,8 @@
         $('.ed-ai-p', aiBox).value = ''; aiFiles = []; renderAiFiles();
         closeAi();
         setTimeout(function () { s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
-        toast('Slide ' + (mode === 'new' ? 'creada' : 'reescrita') + ' con Claude ✓ — ⌘Z o Deshacer para volver atrás', 5000);
+        var c = r.costo && r.costo.usd ? ' · ' + (r.costo.billed ? 'costo' : 'equivalente') + ' US$ ' + r.costo.usd.toFixed(3) : '';
+        toast('Slide ' + (mode === 'new' ? 'creada' : 'reescrita') + ' con Claude ✓' + c + ' — ⌘Z o Deshacer para volver atrás', 5000);
       })
       .catch(function (e) { msg.textContent = e.message; msg.classList.add('err'); })
       .then(function () { clearInterval(tick); aiBusy = false; btn.disabled = false; aiBox.classList.remove('busy'); if (!msg.classList.contains('err')) msg.textContent = ''; });

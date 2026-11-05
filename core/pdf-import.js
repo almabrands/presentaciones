@@ -215,7 +215,8 @@
   }
 
   /* ───────── servidor ───────── */
-  function post(url, body) {
+  // job (opcional): acumula en job.costo lo que informa el servidor por cada llamada a la IA
+  function post(url, body, job) {
     var json = JSON.stringify(body);
     if (json.length > 4.4e6) return Promise.reject(new Error('Envío demasiado grande (' + Math.round(json.length / 1e6) + ' MB).'));
     return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json }).then(function (r) {
@@ -225,6 +226,7 @@
           var msg = (j && j.error) || (r.status === 413 ? 'El envío supera el límite del servidor.' : r.status === 504 ? 'El servidor tardó demasiado (timeout).' : 'Error ' + r.status + ': ' + t.slice(0, 120));
           throw new Error(msg);
         }
+        if (job && j.costo && j.costo.usd) { job.costo = (job.costo || 0) + j.costo.usd; job.cobrado = job.cobrado || j.costo.billed; }
         return j;
       });
     });
@@ -288,11 +290,16 @@
     });
   }
 
+  // la primera tarea corre sola: así su respuesta deja el prompt de sistema en caché y las demás (en paralelo) lo reutilizan
   function pool(items, n, fn) {
     var i = 0;
     function go() { if (i >= items.length) return Promise.resolve(); var k = i++; return fn(items[k], k).then(go); }
-    var ws = []; for (var w = 0; w < Math.min(n, items.length); w++) ws.push(go());
-    return Promise.all(ws);
+    if (!items.length) return Promise.resolve();
+    i = 1;
+    return fn(items[0], 0).then(function () {
+      var ws = []; for (var w = 0; w < Math.min(n, items.length - 1); w++) ws.push(go());
+      return Promise.all(ws);
+    });
   }
 
   /* ───────── HTML del sistema ───────── */
@@ -310,7 +317,7 @@
     }, Promise.resolve()).then(function () {
       if (found.length) say('Claude está leyendo la presentación para generar su ficha…');
       if (html.length > 4.3e6) throw new Error('El HTML es demasiado grande (' + Math.round(html.length / 1e6) + ' MB) incluso sin imágenes.');
-      return post('/api/plantillas/html', { html: html, nombre: nombre });
+      return post('/api/plantillas/html', { html: html, nombre: nombre }, job);
     });
   }
 
@@ -369,7 +376,7 @@
       }).then(function () {
         say(src.n + ' páginas. Claude está analizando colores, tipos de slide y contenido…');
         job.fase = 'analizando'; draw();
-        return post('/api/plantillas/analizar', { nombre: nombre, notas: notas, pages: pages.map(function (p) { return { n: p.n, thumb: p.thumb, text: p.text.slice(0, 500) }; }) });
+        return post('/api/plantillas/analizar', { nombre: nombre, notas: notas, pages: pages.map(function (p) { return { n: p.n, thumb: p.thumb, text: p.text.slice(0, 500) }; }) }, job);
       }).then(function (r) {
         a = r;
         job.titulo = a.nombre; job.estructura = a.estilo; job.total = a.paginas.length;
@@ -393,7 +400,7 @@
           var bx = boxes[page.n] || [];
           return Promise.all([src.image(page.n, 1600, 900), src.text(page.n)]).then(function (r) {
             return post('/api/plantillas/replicar', { a: aLite, page: page, idx: k, total: a.paginas.length, image: b64(r[0], 'image/jpeg', 0.82), text: r[1].slice(0, 4000),
-              boxes: bx.map(function (b) { return { x: b.x, y: b.y, w: b.w, h: b.h }; }) });
+              boxes: bx.map(function (b) { return { x: b.x, y: b.y, w: b.w, h: b.h }; }) }, job);
           }).then(function (r) {
             var mine = imgLock.then(function () { return fillImages(src, page.n, r.html, bx); });
             imgLock = mine.catch(function () {});

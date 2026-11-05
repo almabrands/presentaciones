@@ -17,8 +17,28 @@ const { guiaMarca } = require('./estilo');
 // En Vercel no existe la CLI, así que ahí se usa siempre la API.
 const PROVIDER = (process.env.VERCEL ? 'api'
   : ((process.env.AI_PROVIDER || '').trim() || (process.env.ANTHROPIC_API_KEY ? 'api' : 'claude-code'))).toLowerCase();
-const API_MODEL = process.env.AI_MODEL || 'claude-opus-5-5';
-const EFFORT = process.env.AI_EFFORT || 'medium';
+const env = (k, d) => (process.env[k] || '').trim() || d;
+// Dos niveles de llamada para controlar el costo:
+//  main  → planificar, analizar, fichas, buscador (pocas llamadas, requieren criterio): Opus
+//  slide → escribir/replicar/adaptar una slide (la mayoría de las llamadas): Sonnet con esfuerzo bajo
+const TIERS = {
+  main: { model: env('AI_MODEL', 'claude-opus-5-5'), effort: env('AI_EFFORT', 'medium') },
+  slide: { model: env('AI_MODEL_SLIDES', 'claude-sonnet-5-5'), effort: env('AI_EFFORT_SLIDES', 'low') },
+};
+const API_MODEL = TIERS.main.model;
+const EFFORT = TIERS.main.effort;
+// US$ por millón de tokens: entrada, salida, lectura de caché, escritura de caché (5 min = 1,25× entrada)
+const PRICES = {
+  'claude-opus-5-5': [4, 20, 0.2, 5], 'claude-sonnet-5-5': [2, 10, 0.2, 2.5], 'claude-haiku-5-5': [0.1, 0.5, 0.01, 0.125],
+  'claude-opus-5': [5, 25, 0.5, 6.25], 'claude-opus-4-8': [5, 25, 0.5, 6.25], 'claude-sonnet-5': [2, 10, 0.2, 2.5], 'claude-fable-5-1': [10, 50, 0.25, 12.5],
+};
+function costOf(model, u) {
+  if (!u) return 0;
+  const k = Object.keys(PRICES).sort((a, b) => b.length - a.length).find((m) => String(model || '').startsWith(m));
+  const [pi, po, pr, pw] = PRICES[k] || PRICES['claude-opus-5-5'];
+  const web = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0; // US$ 10 por 1.000 búsquedas
+  return ((u.input_tokens || 0) * pi + (u.output_tokens || 0) * po + (u.cache_read_input_tokens || 0) * pr + (u.cache_creation_input_tokens || 0) * pw) / 1e6 + web * 0.01;
+}
 const TIMEOUT_MS = 6 * 60 * 1000;
 
 /* ───────── proveedor: CLI de Claude Code ───────── */
@@ -116,14 +136,14 @@ async function claudeCodeStatus() {
   return v;
 }
 
-async function runClaudeCode(bin, pr, { system, content, web }) {
+async function runClaudeCode(bin, pr, { system, content, web, tier }) {
   const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'alma-ai-'));
   const sysFile = path.join(tmp, 'system.md');
   await fsp.writeFile(sysFile, system);
   // con web: solo búsqueda y lectura de páginas (sin archivos ni terminal)
   const tools = web ? ['--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch'] : ['--tools', ''];
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', ...tools, '--no-session-persistence', '--strict-mcp-config', '--system-prompt-file', sysFile];
-  if (process.env.AI_MODEL) args.push('--model', process.env.AI_MODEL);
+  if (tier === 'slide' || process.env.AI_MODEL) args.push('--model', TIERS[tier === 'slide' ? 'slide' : 'main'].model);
   try {
     const out = await new Promise((resolve, reject) => {
       // cwd temporal: así no carga CLAUDE.md ni configuración de ningún proyecto
@@ -149,7 +169,8 @@ async function runClaudeCode(bin, pr, { system, content, web }) {
       const msg = j.result || 'Error de Claude Code';
       const e = new Error(msg); e.limit = LIMIT_RE.test(msg); e.auth = /authenticat|login|OAuth|api key/i.test(msg); throw e;
     }
-    return { text: j.result || '', model: Object.keys(j.modelUsage || {})[0] || 'claude-code', cost: j.total_cost_usd };
+    // con la CLI se usa el plan de la cuenta: el costo es solo una referencia (no se cobra a la API)
+    return { text: j.result || '', model: Object.keys(j.modelUsage || {})[0] || 'claude-code', usd: +j.total_cost_usd || 0, billed: false };
   } finally {
     fs.rm(tmp, { recursive: true, force: true }, () => {});
   }
@@ -194,25 +215,27 @@ function apiClient() {
   return client;
 }
 
-async function generateApi({ system, content, web }) {
+async function generateApi({ system, content, web, tier }) {
+  const cfg = TIERS[tier === 'slide' ? 'slide' : 'main'];
   const Anthropic = require('@anthropic-ai/sdk');
   try {
     // fallbacks "default": si el modelo declina por política, la API reintenta con otro modelo adecuado
     const messages = [{ role: 'user', content }];
     const tools = web ? [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8 }, { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 10 }] : undefined;
-    let msg;
+    let msg, prevUsd = 0;
     // con herramientas web el servidor puede pausar el turno (pause_turn): se reenvía para que continúe
     for (let k = 0; k < 6; k++) {
       msg = await apiClient().beta.messages.stream({
-        model: API_MODEL,
+        model: cfg.model,
         max_tokens: 32000,
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
-        output_config: { effort: EFFORT },
+        output_config: { effort: cfg.effort },
         system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
         ...(tools ? { tools } : {}),
         messages,
       }).finalMessage();
+      prevUsd += costOf(msg.model, msg.usage);
       if (msg.stop_reason !== 'pause_turn') break;
       if (messages.length > 1) messages.pop();
       messages.push({ role: 'assistant', content: msg.content });
@@ -221,7 +244,9 @@ async function generateApi({ system, content, web }) {
     if (msg.stop_reason === 'max_tokens') throw new Error('La respuesta quedó incompleta (demasiado larga). Simplifica la slide o el prompt.');
     // con web hay texto antes y después de las búsquedas: lo útil es el último bloque de texto con la respuesta
     const text = msg.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
-    return { text, model: msg.model, usage: msg.usage };
+    const usd = prevUsd;
+    console.log(`IA ${msg.model} (${cfg.effort}): ${msg.usage.input_tokens} in + ${msg.usage.cache_read_input_tokens || 0} caché + ${msg.usage.output_tokens} out → US$ ${usd.toFixed(4)}`);
+    return { text, model: msg.model, usage: msg.usage, usd, billed: true };
   } catch (e) {
     const A = Anthropic.default || Anthropic;
     if (e instanceof A.AuthenticationError) throw new Error('ANTHROPIC_API_KEY inválida.');
@@ -339,9 +364,12 @@ async function restoreAttachments(html, files) {
   return html.replace(/data:ADJ_(\d+)/g, (m, i) => urls[+i] ?? '');
 }
 
-async function complete({ system, content, web }) {
-  return PROVIDER === 'api' ? generateApi({ system, content, web }) : generateClaudeCode({ system, content, web });
+// tier: 'main' (por defecto) | 'slide' — ver TIERS. Devuelve { text, model, usd, billed }
+async function complete({ system, content, web, tier }) {
+  return PROVIDER === 'api' ? generateApi({ system, content, web, tier }) : generateClaudeCode({ system, content, web, tier });
 }
+// resumen de costo para devolver al navegador
+const costo = (r) => ({ usd: +(r.usd || 0).toFixed(5), model: r.model, billed: !!r.billed });
 
 // reglas para cuando la búsqueda en internet está activada (van en el mensaje, no en el system: así se mantiene la caché)
 const WEB_RULES = `# Búsqueda en internet (activada)
@@ -358,7 +386,7 @@ function extractJson(text) {
 
 async function status() {
   if (PROVIDER === 'api') {
-    return { provider: 'api', model: API_MODEL, ready: !!process.env.ANTHROPIC_API_KEY, detail: process.env.ANTHROPIC_API_KEY ? `API de Anthropic · ${API_MODEL}` : 'Falta ANTHROPIC_API_KEY' };
+    return { provider: 'api', model: API_MODEL, modelSlides: TIERS.slide.model, ready: !!process.env.ANTHROPIC_API_KEY, detail: process.env.ANTHROPIC_API_KEY ? `API de Anthropic · plan ${API_MODEL} (${EFFORT}) · slides ${TIERS.slide.model} (${TIERS.slide.effort})` : 'Falta ANTHROPIC_API_KEY' };
   }
   return { provider: 'claude-code', ...(await claudeCodeStatus()) };
 }
@@ -381,11 +409,11 @@ async function generateSlide({ deckPath, deckHtml: deckHtmlArg, slideHtml, promp
     (att.notes.length ? `Archivos adjuntos (van antes de este mensaje):\n${att.notes.join('\n')}\n\n` : '') +
     `Instrucción: ${prompt.trim()}` + (web ? `\n\n${WEB_RULES}` : '');
   const content = [...att.blocks, { type: 'text', text: user }];
-  const r = await complete({ system, content, web });
+  const r = await complete({ system, content, web, tier: 'slide' });
   let html = await restoreAttachments(restoreImages(extractSection(r.text), imgs), files);
   let fotosWeb = null;
   if (web) ({ html, ...fotosWeb } = await resolveWebImages(html));
-  return { html, model: r.model, provider: PROVIDER, fotosWeb };
+  return { html, model: r.model, provider: PROVIDER, fotosWeb, costo: costo(r) };
 }
 
 /* ───────── ficha automática ───────── */
@@ -446,11 +474,11 @@ Incluye como máximo 5 resultados, ordenados de mayor a menor calce, y omite los
     .sort((a, b) => b.calce - a.calce)
     .slice(0, 5);
   const resumen = String(j.resumen || '').replace(/\s*\[(\d+)\]/g, (m, i) => (decks[+i] ? ` «${decks[+i].title}»` : ''));
-  return { resumen, resultados };
+  return { resumen, resultados, costo: costo(r) };
 }
 
 module.exports = {
   generateSlide, suggestFicha, searchDecks, status, PROVIDER,
   // piezas reutilizadas por crear.js
-  complete, extractJson, buildSystem, WEB_RULES, stripImages, restoreImages, extractSection, attachmentBlocks, restoreAttachments, hydrateFiles,
+  complete, extractJson, buildSystem, WEB_RULES, stripImages, restoreImages, extractSection, attachmentBlocks, restoreAttachments, hydrateFiles, costo, TIERS,
 };

@@ -41,6 +41,7 @@ Español de Chile.`;
   content.push({ type: 'text', text: `Nombre sugerido por el usuario: ${nombre || '(ninguno)'}\nNotas del usuario: ${notas || '(ninguna)'}\n\nTexto extraído por página:\n${texts}` });
   const r = await ai.complete({ system, content });
   const j = ai.extractJson(r.text);
+  const costoAnalisis = ai.costo(r);
   const valid = new Set(pages.map((p) => p.n));
   const pags = (Array.isArray(j.paginas) ? j.paginas : []).filter((x) => valid.has(+x.pagina)).slice(0, MAX_PAGES);
   if (!pags.length) throw new Error('La IA no pudo identificar las páginas de la presentación.');
@@ -49,6 +50,7 @@ Español de Chile.`;
     nombre: String(nombre || j.nombre || 'Nueva plantilla'), estilo: String(j.estilo || ''), ficha: j.ficha || {},
     tema: { accent: HEX.test(tema.accent) ? tema.accent : '#FF0000', accent2: HEX.test(tema.accent2) ? tema.accent2 : '#42108E', accent3: HEX.test(tema.accent3) ? tema.accent3 : '#008E92' },
     paginas: pags.map((x) => ({ n: +x.pagina, tipo: String(x.tipo || ''), nota: String(x.nota || '') })),
+    costo: costoAnalisis,
   };
 }
 
@@ -148,8 +150,8 @@ ${lista}
 ${molde ? `\n# Slide existente con estructura parecida (úsala como referencia técnica de clases; NO copies su contenido)\n${molde}\n` : ''}
 # Texto extraído de la página (para no cometer errores de transcripción)
 ${String(text || '').slice(0, 4000) || '(sin texto extraíble)'}`;
-  const r = await ai.complete({ system, content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img64(image) } }, { type: 'text', text: prompt }] });
-  return { html: ai.extractSection(r.text) };
+  const r = await ai.complete({ tier: 'slide', system, content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img64(image) } }, { type: 'text', text: prompt }] });
+  return { html: ai.extractSection(r.text), costo: ai.costo(r) };
 }
 
 /* ───────── 3) guardar ───────── */

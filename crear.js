@@ -92,6 +92,7 @@ ${await require('./estilo').guiaMarca()}`;
     (att.notes.length ? `\n\n# Archivos adjuntos (van antes de este mensaje)\n${att.notes.join('\n')}` : '');
   const r = await ai.complete({ system, content: [...att.blocks, { type: 'text', text }], web });
   const j = ai.extractJson(r.text);
+  const costoPlan = ai.costo(r);
   const byId = new Map(lib.slides.map((s) => [s.id, s]));
   const items = (Array.isArray(j.slides) ? j.slides : [])
     .map((x) => ({ ...x, src: byId.get(String(x.origen || '').trim()) }))
@@ -104,7 +105,7 @@ ${await require('./estilo').guiaMarca()}`;
     });
   if (!items.length) throw new Error('La IA no logró armar una estructura válida. Precisa el brief e intenta de nuevo.');
   const baseDeck = lib.decks.find((d) => d.path === (base || j.base)) || lib.decks.find((d) => d.kind === 'plantilla');
-  return { titulo: String(j.titulo || 'Nueva presentación'), estructura: String(j.estructura || ''), ficha: j.ficha || {}, base: baseDeck, items, investigacion: String(j.investigacion || '') };
+  return { titulo: String(j.titulo || 'Nueva presentación'), estructura: String(j.estructura || ''), ficha: j.ficha || {}, base: baseDeck, items, investigacion: String(j.investigacion || ''), costo: costoPlan };
 }
 
 /* ───────── 2) adaptar cada slide ───────── */
@@ -139,8 +140,8 @@ Inserta estas imágenes adjuntas en slots .foto (reemplazando las fotos del mold
 # Fotos de internet para esta slide (ya descargadas)
 Úsalas en slots .foto con background-image:url(…) copiando la URL tal cual (reemplazando las fotos del molde o llenando sus slots vacíos; "contain" para logos o productos recortados), y menciona la fuente en la línea de fuentes:
 ${item.web.map((f) => `- url(${f.media}) — ${f.desc}`).join('\n')}` : ''}`;
-  const r = await ai.complete({ system, content: [...att.blocks, { type: 'text', text }] });
-  return ai.restoreAttachments(ai.restoreImages(ai.extractSection(r.text), imgs), files);
+  const r = await ai.complete({ tier: 'slide', system, content: [...att.blocks, { type: 'text', text }] });
+  return { html: await ai.restoreAttachments(ai.restoreImages(ai.extractSection(r.text), imgs), files), costo: ai.costo(r) };
 }
 
 // slide n (1-based, visible o no) de una presentación guardada
@@ -168,7 +169,7 @@ async function planStep({ brief, data, files, base, largo, web }) {
   return {
     titulo: p.titulo, estructura: p.estructura, ficha: p.ficha, investigacion: p.investigacion,
     base: { path: p.base.path, title: p.base.title },
-    biblioteca: { slides: lib.slides.length, decks: lib.decks.length },
+    biblioteca: { slides: lib.slides.length, decks: lib.decks.length }, costo: p.costo,
     items: p.items.map((it) => ({
       src: { path: it.src.deck.path, n: it.src.n, title: it.src.deck.title },
       accion: it.accion, proposito: it.proposito, instrucciones: it.instrucciones, usa_adjuntos: it.usa_adjuntos,
@@ -198,8 +199,7 @@ async function slideStep({ item, idx, total, brief, data, files, outline, invest
     imagenes: (Array.isArray(item.imagenes) ? item.imagenes : []).map(Number).filter((n) => Number.isInteger(n) && files[n]),
     web: (Array.isArray(item.web) ? item.web : []).filter((f) => f && /^\.\.\/media\/[a-f0-9]{16}\.[a-z]+$/.test(f.media)).map((f) => ({ media: f.media, desc: String(f.desc || '') })),
   };
-  const html = await adapt({ item: it, idx: +idx || 0, total: +total || 1, system, brief: String(brief || ''), data: data ? String(data) : '', files, outline: String(outline || ''), investigacion: String(investigacion || '') });
-  return { html };
+  return adapt({ item: it, idx: +idx || 0, total: +total || 1, system, brief: String(brief || ''), data: data ? String(data) : '', files, outline: String(outline || ''), investigacion: String(investigacion || '') });
 }
 
 /* ───────── paso 3: armar y guardar ───────── */
