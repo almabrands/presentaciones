@@ -676,6 +676,38 @@
     }).join('');
   }
   function closeAi() { if (aiBox) aiBox.classList.remove('on'); }
+  // adjuntos de ✨ en pasos cortos (requests < 4,5 MB para Vercel): las imágenes se suben antes al banco media/
+  // y de cada PDF se sacan sus fotos en el navegador (pdf.js, core/pdf-import.js); el PDF va embebido si es liviano, si no su texto.
+  var pdfLib = null;
+  function loadPdfImport() {
+    if (window.AlmaImport) return Promise.resolve(window.AlmaImport);
+    if (!pdfLib) pdfLib = new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = '/core/pdf-import.js';
+      sc.onload = function () { res(window.AlmaImport); }; sc.onerror = function () { rej(new Error('No se pudo cargar el lector de PDF')); };
+      document.head.appendChild(sc);
+    });
+    return pdfLib;
+  }
+  function prepAiFiles(list, say) {
+    var out = [], extra = [];
+    var pdfBytes = list.filter(function (f) { return f.type === 'application/pdf'; }).reduce(function (t, f) { return t + f.data.length; }, 0);
+    return list.reduce(function (p, f) {
+      return p.then(function () {
+        if (/^image\//.test(f.type)) {
+          say('Subiendo ' + f.name + '…');
+          return api('POST', '/api/media', { type: f.type, data: f.data }).then(function (j) { out.push({ name: f.name, type: f.type, media: j.url }); });
+        }
+        if (f.type !== 'application/pdf') { out.push({ name: f.name, type: f.type, data: f.data }); return; }
+        say('Leyendo ' + f.name + ' y buscando sus fotos…');
+        return loadPdfImport().then(function (A) { return A.pdfAttachment(f).then(function (r) {
+          out.push(pdfBytes <= 2.5e6 ? { name: f.name, type: f.type, data: f.data } : { name: f.name, type: 'text/plain', text: r.text });
+          return r.photos.reduce(function (q, ph) {
+            return q.then(function () { return A.upload(ph.canvas, { withType: true }); }).then(function (u) { extra.push({ name: ph.name, type: u.type, media: u.url, extraido: true }); });
+          }, Promise.resolve());
+        }); });
+      });
+    }, Promise.resolve()).then(function () { say('Claude está diseñando la slide…'); return out.concat(extra); });
+  }
   function runAi() {
     if (aiBusy || !aiSlide) return;
     var prompt = $('.ed-ai-p', aiBox).value.trim();
@@ -687,8 +719,10 @@
     msg.classList.remove('err'); msg.textContent = 'Claude está diseñando la slide…';
     var web = $('.ed-ai-w', aiBox).checked;
     if (web) { clearInterval(tick); tick = setInterval(function () { msg.textContent = 'Claude está investigando en internet y diseñando la slide… ' + Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000); }
-    api('POST', '/api/ai', { path: PATH, slideHtml: clean(target.cloneNode(true)).outerHTML, prompt: prompt, mode: mode, data: $('.ed-ai-d', aiBox).value, web: web,
-      files: aiFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }) })
+    prepAiFiles(aiFiles, function (t) { msg.textContent = t; })
+      .then(function (files) {
+        return api('POST', '/api/ai', { path: PATH, slideHtml: clean(target.cloneNode(true)).outerHTML, prompt: prompt, mode: mode, data: $('.ed-ai-d', aiBox).value, web: web, files: files });
+      })
       .then(function (r) {
         var tpl = document.createElement('template'); tpl.innerHTML = r.html.trim();
         var s = tpl.content.querySelector('section.slide');

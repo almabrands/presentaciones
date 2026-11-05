@@ -196,6 +196,14 @@ async function writeMedia(name, buffer) {
   if (error && !error.message?.includes('already') && error.statusCode !== '409') throw error;
 }
 
+async function readMedia(name) {
+  if (!/^[a-f0-9]{16}\.(jpg|png|webp|gif)$/.test(name)) throw Object.assign(new Error('imagen no permitida: ' + name), { status: 400 });
+  if (mode === 'local') return fsp.readFile(path.join(ROOT, 'media', name));
+  const { data, error } = await sb().storage.from('media').download(name);
+  if (error || !data) throw Object.assign(new Error('Imagen no encontrada: ' + name), { status: 404 });
+  return Buffer.from(await data.arrayBuffer());
+}
+
 function mediaPublicUrl(name) {
   if (mode === 'local') return null;
   const { data } = sb().storage.from('media').getPublicUrl(name);
@@ -212,5 +220,5 @@ function rewriteMediaUrls(html) {
 module.exports = {
   mode, validatePath, deckExists, uniqueName,
   readDeck, writeDeck, statDeck, deleteDeck, listDeckDetails,
-  writeMedia, mediaPublicUrl, rewriteMediaUrls,
+  writeMedia, readMedia, mediaPublicUrl, rewriteMediaUrls,
 };

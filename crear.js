@@ -1,21 +1,18 @@
 // Crear una presentación completa con IA reutilizando slides existentes.
-// 1) Planificar: Claude recibe el brief, los adjuntos y un índice de TODAS las slides (plantillas y
+// El navegador orquesta pasos cortos (funciona igual en local y en Vercel: sin trabajos en memoria ni disco):
+// 1) planStep  — Claude recibe el brief, los adjuntos y un índice de TODAS las slides (plantillas y
 //    presentaciones) y arma la estructura eligiendo, para cada slide, una slide de origen que se
 //    reusa tal cual o se adapta. Así la gráfica siempre sale de diseños existentes.
-// 2) Construir: las slides a adaptar se reescriben en paralelo usando su origen como molde.
-// 3) Armar: se monta todo sobre el tema de la presentación base, con su ficha, y se guarda.
-const fs = require('fs');
-const fsp = fs.promises;
-const path = require('path');
-const crypto = require('crypto');
+// 2) slideStep — cada slide a adaptar se reescribe usando su origen como molde (el navegador las pide en paralelo).
+// 3) saveStep  — se monta todo sobre el tema de la presentación base, con su ficha, y se guarda (storage).
+// Los adjuntos de imagen llegan ya subidos al banco media/ ({media}); los PDF, embebidos o como texto.
 const ai = require('./ai');
 const imagenes = require('./imagenes');
+const storage = require('./storage');
 const { readFicha, writeFicha, normalize, slidesText, OPCIONES } = require('./ficha');
 
-const ROOT = __dirname;
-const CONCURRENCY = Number(process.env.AI_CONCURRENCY) || 3;
 const MAX_SLIDES = 30;
-const jobs = new Map();
+const fail = (msg) => Object.assign(new Error(msg), { status: 400 });
 
 const titleOf = (html) => ((html.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '').trim();
 const templateOf = (html) => (html.match(/<meta name="deck-template" content="([^"]*)"/i) || [])[1] || '';
@@ -25,10 +22,9 @@ const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 async function slideLibrary() {
   const decks = [];
   for (const dir of ['plantillas', 'presentaciones']) {
-    const files = (await fsp.readdir(path.join(ROOT, dir))).filter((f) => f.endsWith('.html'));
-    for (const f of files) {
-      const html = await fsp.readFile(path.join(ROOT, dir, f), 'utf8');
-      decks.push({ path: `${dir}/${f}`, title: titleOf(html) || f, kind: dir === 'plantillas' ? 'plantilla' : 'presentación', html, ficha: readFicha(html) });
+    for (const d of await storage.listDeckDetails(dir)) {
+      const html = await storage.readDeck(d.path).catch(() => '');
+      if (html) decks.push({ path: d.path, title: titleOf(html) || d.file, kind: dir === 'plantillas' ? 'plantilla' : 'presentación', html, ficha: readFicha(html) });
     }
   }
   const slides = [];
@@ -147,97 +143,82 @@ ${item.web.map((f) => `- url(${f.media}) — ${f.desc}`).join('\n')}` : ''}`;
   return ai.restoreAttachments(ai.restoreImages(ai.extractSection(r.text), imgs), files);
 }
 
-async function pool(items, n, fn) {
-  let i = 0;
-  const run = async () => { while (i < items.length) { const k = i++; await fn(items[k], k); } };
-  await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
+// slide n (1-based, visible o no) de una presentación guardada
+async function sourceSlide(rel, n) {
+  const html = await storage.readDeck(storage.validatePath(rel));
+  const sec = (html.match(/<section class="slide[\s\S]*?<\/section>/gi) || [])[+n - 1];
+  if (!sec) throw fail(`No encontré la slide ${n} de ${rel}`);
+  return { deckHtml: html, html: sec.replace(/\sdata-oculta(="[^"]*")?/, '') };
 }
 
-/* ───────── trabajo completo ───────── */
-async function run(job, { brief, data, files, base, largo, titulo, web }) {
-  const say = (t) => { job.pasos.push(t); job.t = Date.now(); };
-  job.fase = 'planificando';
-  if ((files || []).some((f) => f.type === 'application/pdf')) {
-    say('Buscando fotos dentro de los PDF adjuntos…');
-    const n0 = files.length;
-    files = await imagenes.expandPdfImages(files);
-    if (files.length > n0) say(`Extraje ${files.length - n0} imágenes de los PDF; Claude podrá usarlas en las slides.`);
-  }
-  say('Revisando la biblioteca de slides…');
-  const lib = await slideLibrary();
-  say(`Biblioteca: ${lib.slides.length} slides de ${lib.decks.length} presentaciones y plantillas. Claude está ${web ? 'investigando en internet y ' : ''}diseñando la estructura…`);
-  const p = await plan({ brief, data, files, base, largo, lib, web });
-  if (web) {
-    // descarga las fotos propuestas (una vez cada URL) al banco media/
-    const urls = [...new Set(p.items.flatMap((it) => it.fotosWeb.map((f) => f.url)))].slice(0, 24);
-    const got = new Map();
-    if (urls.length) say(`Descargando ${urls.length} fotos encontradas en internet…`);
-    await Promise.all(urls.map((u) => imagenes.fetchImage(u).then((m) => got.set(u, m)).catch((e) => console.log(`Foto web no descargada (${e.message}): ${u}`))));
-    for (const it of p.items) it.web = it.fotosWeb.filter((f) => got.has(f.url)).map((f) => ({ ...f, media: got.get(f.url) }));
-    if (urls.length) say(`${got.size} de ${urls.length} fotos descargadas.`);
-    if (p.investigacion) say('Investigación lista: las slides usarán esos datos con sus fuentes.');
-  }
-  job.titulo = titulo || p.titulo;
-  job.estructura = p.estructura;
-  job.base = p.base.path;
-  job.slides = p.items.map((it) => ({ proposito: it.proposito, accion: it.accion, origen: `${it.src.deck.title} · slide ${it.src.n}`, estado: it.accion === 'reusar' ? 'listo' : 'pendiente' }));
-  job.total = p.items.length;
-  say(`Estructura lista: ${p.items.length} slides sobre la base “${p.base.title}”.`);
-
+async function baseWithFicha(basePath, ficha) {
+  const html = await storage.readDeck(storage.validatePath(basePath));
   const today = new Date().toISOString().slice(0, 10);
-  const ficha = normalize({ ...p.ficha, estado: 'Borrador', fecha: today, plantilla: templateOf(p.base.html) });
-  const baseHtml = writeFicha(p.base.html, ficha);
-  const system = await ai.buildSystem(baseHtml);
-  const outline = p.items.map((it, k) => `${k + 1}. ${it.proposito}`).join('\n');
-
-  job.fase = 'generando';
-  const out = new Array(p.items.length);
-  const toAdapt = [];
-  p.items.forEach((it, k) => { if (it.accion === 'reusar') out[k] = it.src.html.replace(/\sdata-oculta(="[^"]*")?/, ''); else toAdapt.push(k); });
-  job.hechas = p.items.length - toAdapt.length;
-  say(`Generando ${toAdapt.length} slides (${CONCURRENCY} en paralelo)…`);
-  await pool(toAdapt, CONCURRENCY, async (k) => {
-    job.slides[k].estado = 'generando';
-    try {
-      out[k] = await adapt({ item: p.items[k], idx: k, total: p.items.length, system, brief, data, files, outline, investigacion: p.investigacion });
-      job.slides[k].estado = 'listo';
-    } catch (e) {
-      out[k] = p.items[k].src.html;
-      job.slides[k].estado = 'error';
-      say(`Slide ${k + 1}: no se pudo adaptar (${e.message}); quedó la slide de origen para editar a mano.`);
-    }
-    job.hechas++;
-  });
-
-  job.fase = 'armando';
-  say('Armando la presentación…');
-  let html = baseHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(job.titulo)}</title>`);
-  html = html.replace(/<main class="deck">[\s\S]*<\/main>/i, `<main class="deck">\n\n${out.join('\n\n')}\n\n</main>`);
-  const slug = String(job.titulo).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'presentacion';
-  let name = `${slug}.html`, n = 2;
-  while (fs.existsSync(path.join(ROOT, 'presentaciones', name))) name = `${slug}-${n++}.html`;
-  await fsp.writeFile(path.join(ROOT, 'presentaciones', name), imagenes.externalize(html));
-  job.path = `presentaciones/${name}`;
-  job.fase = 'listo';
-  say('¡Presentación lista!');
+  return writeFicha(html, normalize({ ...(ficha || {}), estado: 'Borrador', fecha: today, plantilla: templateOf(html) }));
 }
 
-function start(params) {
-  if (!params.brief || !String(params.brief).trim()) throw new Error('Describe la presentación que quieres crear.');
-  ai.attachmentBlocks(params.files); // valida adjuntos antes de partir
-  const id = crypto.randomBytes(6).toString('hex');
-  const job = { id, fase: 'en cola', pasos: [], slides: [], total: 0, hechas: 0, inicio: Date.now(), t: Date.now() };
-  jobs.set(id, job);
-  run(job, params).catch((e) => { job.fase = 'error'; job.error = e.message; job.pasos.push('Error: ' + e.message); });
-  // limpieza de trabajos viejos
-  for (const [k, j] of jobs) if (Date.now() - j.inicio > 6 * 3600e3) jobs.delete(k);
-  return { id };
+/* ───────── paso 1: plan ───────── */
+async function planStep({ brief, data, files, base, largo, web }) {
+  if (!brief || !String(brief).trim()) throw fail('Describe la presentación que quieres crear.');
+  ai.attachmentBlocks(files); // valida
+  files = await ai.hydrateFiles(files);
+  const lib = await slideLibrary();
+  if (!lib.slides.length) throw new Error('No hay plantillas ni presentaciones para usar como molde. Importa una plantilla primero.');
+  const p = await plan({ brief: String(brief), data: data ? String(data) : '', files, base, largo: +largo || 0, lib, web: !!web });
+  return {
+    titulo: p.titulo, estructura: p.estructura, ficha: p.ficha, investigacion: p.investigacion,
+    base: { path: p.base.path, title: p.base.title },
+    biblioteca: { slides: lib.slides.length, decks: lib.decks.length },
+    items: p.items.map((it) => ({
+      src: { path: it.src.deck.path, n: it.src.n, title: it.src.deck.title },
+      accion: it.accion, proposito: it.proposito, instrucciones: it.instrucciones, usa_adjuntos: it.usa_adjuntos,
+      imagenes: it.imagenes, fotosWeb: it.fotosWeb,
+    })),
+  };
 }
 
-function get(id) {
-  const j = jobs.get(id);
-  if (!j) { const e = new Error('Trabajo no encontrado (¿se reinició el servidor?)'); e.status = 404; throw e; }
-  return j;
+// fotos de internet propuestas por el plan → banco media/ ({url: "../media/…"} o null)
+async function photosStep({ urls }) {
+  urls = [...new Set((Array.isArray(urls) ? urls : []).map(String).filter((u) => /^https?:\/\//.test(u)))].slice(0, 24);
+  const out = {};
+  await Promise.all(urls.map((u) => imagenes.fetchImage(u).then((m) => { out[u] = m; }).catch((e) => { out[u] = null; console.log(`Foto web no descargada (${e.message}): ${u}`); })));
+  return { fotos: out };
 }
 
-module.exports = { start, get };
+/* ───────── paso 2: una slide ───────── */
+async function slideStep({ item, idx, total, brief, data, files, outline, investigacion, base, ficha }) {
+  if (!item || !item.src) throw fail('Falta la slide de origen.');
+  const src = await sourceSlide(item.src.path, item.src.n);
+  const system = await ai.buildSystem(await baseWithFicha(base, ficha));
+  files = Array.isArray(files) ? files : [];
+  // solo se descargan del banco las imágenes que esta slide usa
+  files = await ai.hydrateFiles(files, item.usa_adjuntos ? null : new Set((item.imagenes || []).map(Number)));
+  const it = {
+    src: { html: src.html }, proposito: String(item.proposito || ''), instrucciones: String(item.instrucciones || ''), usa_adjuntos: !!item.usa_adjuntos,
+    imagenes: (Array.isArray(item.imagenes) ? item.imagenes : []).map(Number).filter((n) => Number.isInteger(n) && files[n]),
+    web: (Array.isArray(item.web) ? item.web : []).filter((f) => f && /^\.\.\/media\/[a-f0-9]{16}\.[a-z]+$/.test(f.media)).map((f) => ({ media: f.media, desc: String(f.desc || '') })),
+  };
+  const html = await adapt({ item: it, idx: +idx || 0, total: +total || 1, system, brief: String(brief || ''), data: data ? String(data) : '', files, outline: String(outline || ''), investigacion: String(investigacion || '') });
+  return { html };
+}
+
+/* ───────── paso 3: armar y guardar ───────── */
+// slides: [{html}] (adaptada) o [{src:{path,n}}] (reusada tal cual, o de respaldo si falló)
+async function saveStep({ titulo, base, ficha, slides }) {
+  if (!Array.isArray(slides) || !slides.length) throw fail('No hay slides para guardar.');
+  const out = [];
+  for (const s of slides.slice(0, MAX_SLIDES)) {
+    if (s && typeof s.html === 'string' && /<section class="slide/.test(s.html)) out.push(s.html);
+    else if (s && s.src) out.push((await sourceSlide(s.src.path, s.src.n)).html);
+  }
+  if (!out.length) throw fail('No hay slides válidas para guardar.');
+  const title = String(titulo || 'Nueva presentación').trim().slice(0, 140);
+  let html = (await baseWithFicha(base, ficha)).replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+  html = html.replace(/<main class="deck">[\s\S]*<\/main>/i, () => `<main class="deck">\n\n${out.join('\n\n')}\n\n</main>`);
+  const slug = title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'presentacion';
+  const name = await storage.uniqueName('presentaciones', slug);
+  await storage.writeDeck(`presentaciones/${name}`, await imagenes.externalizeAsync(html), { backup: false });
+  return { path: `presentaciones/${name}` };
+}
+
+module.exports = { planStep, photosStep, slideStep, saveStep };

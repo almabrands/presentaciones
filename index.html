@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/core/pdf-import.js"></script>
+<script src="/core/crear-ia.js"></script>
 <style>
 :root{--ink:#16121e;--mute:#6d6a78;--line:#e4e3ea;--bg:#f5f4f8;--red:#FF0000;--purple:#42108E;--violet:#6b4cff}
 *{box-sizing:border-box}
@@ -950,7 +951,7 @@ function initAuth() {
   function drawJob(j) {
     var pct = j.total ? Math.round(j.hechas / j.total * 100) : (j.fase === 'listo' ? 100 : 4);
     var icons = { pendiente: '○', generando: '◐', listo: '✓', error: '!' };
-    var fases = { 'en cola': 'Preparando…', planificando: 'Diseñando la estructura…', generando: 'Generando slides (' + j.hechas + ' de ' + j.total + ')…', armando: 'Armando la presentación…', listo: 'Presentación lista', error: 'No se pudo crear' };
+    var fases = { 'en cola': 'Preparando…', preparando: 'Preparando adjuntos…', planificando: 'Diseñando la estructura…', generando: 'Generando slides (' + j.hechas + ' de ' + j.total + ')…', armando: 'Armando la presentación…', listo: 'Presentación lista', error: 'No se pudo crear' };
     var secs = Math.round((Date.now() - j.inicio) / 1000);
     $('#cprog').innerHTML = '<div class="prog"><h3>' + (j.fase === 'listo' || j.fase === 'error' ? '' : '<span class="spin"></span>') + esc(fases[j.fase] || j.fase) + (j.titulo ? ' · ' + esc(j.titulo) : '') + '</h3>' +
       '<p class="est">' + (j.estructura ? esc(j.estructura) : 'Puede tardar 1–3 minutos según el largo.') + ' · ' + secs + ' s</p>' +
@@ -960,23 +961,17 @@ function initAuth() {
       (j.error ? '<p style="color:#c00;font-size:13px;margin:10px 0 0">' + esc(j.error) + '</p>' : '') +
       '<div class="log">' + j.pasos.map(esc).join('<br>') + '</div></div>';
   }
-  function pollJob(id) {
-    api('GET', '/api/crear?id=' + id).then(function (j) {
-      drawJob(j);
-      if (j.fase === 'listo' || j.fase === 'error') { cJob = null; $('#cGo').disabled = false; if (j.fase === 'listo') load(); }
-      else setTimeout(function () { pollJob(id); }, 1500);
-    }).catch(function (e) { $('#cprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; cJob = null; $('#cGo').disabled = false; });
-  }
   $('#cGo').onclick = function () {
     var brief = $('#cbrief').value.trim();
     if (!brief) return $('#cbrief').focus();
     if (cJob) return;
-    $('#cGo').disabled = true;
-    $('#cprog').innerHTML = '<div class="prog"><h3><span class="spin"></span>Enviando…</h3></div>';
-    api('POST', '/api/crear', { brief: brief, titulo: $('#ctitulo').value, base: $('#cbase').value, largo: $('#clargo').value, data: $('#cdata').value, web: $('#cweb').checked,
-      files: cFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }) })
-      .then(function (r) { cJob = r.id; pollJob(r.id); })
-      .catch(function (e) { $('#cprog').innerHTML = '<div class="prog">⚠️ ' + esc(e.message) + '</div>'; $('#cGo').disabled = false; });
+    cJob = true; $('#cGo').disabled = true;
+    $('#cprog').innerHTML = '<div class="prog"><h3><span class="spin"></span>Preparando…</h3></div>';
+    // el navegador orquesta pasos cortos contra el servidor (core/crear-ia.js); no cierres la pestaña mientras trabaja
+    window.AlmaCrear.run({ brief: brief, titulo: $('#ctitulo').value, base: $('#cbase').value, largo: $('#clargo').value, data: $('#cdata').value, web: $('#cweb').checked,
+      files: cFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }),
+      onProgress: drawJob,
+    }).then(function (j) { cJob = null; $('#cGo').disabled = false; if (j.fase === 'listo') load(); });
   };
 
   /* ───────── vistas (sidebar) ───────── */

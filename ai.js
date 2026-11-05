@@ -8,7 +8,7 @@ const fsp = fs.promises;
 const path = require('path');
 const os = require('os');
 const { execFile, spawn } = require('child_process');
-const { expandPdfImages, saveBuffer, resolveWebImages } = require('./imagenes');
+const { expandPdfImages, saveBufferAsync, resolveWebImages } = require('./imagenes');
 
 const ROOT = __dirname;
 const { readFicha, normalize, OPCIONES } = require('./ficha');
@@ -289,6 +289,9 @@ function extractSection(text) {
 const IMG_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILES = 10, MAX_BYTES = 25 * 1024 * 1024;
 // files: adjuntos del usuario + fotos extraídas de sus PDF (extraido: true, no cuentan para los límites).
+//  { name, type, data(base64) }            imagen o PDF embebido
+//  { name, type, media: "../media/x.jpg" }  imagen ya subida al banco (ver hydrateFiles)
+//  { name, type: "text/plain", text }       texto extraído de un PDF (en el navegador)
 // only: índices de las imágenes a enviar (las demás se omiten; los índices data:ADJ_n no cambian).
 function attachmentBlocks(files, { only } = {}) {
   files = files || [];
@@ -297,24 +300,44 @@ function attachmentBlocks(files, { only } = {}) {
   const blocks = [], notes = [];
   files.forEach((f, i) => {
     const data = String(f.data || '').replace(/^data:[^,]*,/, '');
-    if (!f.extraido) total += data.length * 0.75;
+    if (!f.extraido) total += data.length * 0.75 + String(f.text || '').length;
     if (total > MAX_BYTES) throw new Error('Los adjuntos superan 25 MB en total. Usa menos archivos o más livianos.');
     if (only && !only.has(i)) return;
     if (IMG_TYPES.includes(f.type)) {
+      if (!data && f.media) return; // sin hidratar: solo validación
       blocks.push({ type: 'image', source: { type: 'base64', media_type: f.type, data } });
       notes.push(`${i + 1}. ${f.name} — imagen${f.extraido ? ' extraída del PDF' : ''}, disponible como data:ADJ_${i}`);
     } else if (f.type === 'application/pdf') {
       blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data }, title: f.name });
       notes.push(`${i + 1}. ${f.name} — PDF (fuente de contenido; sus fotos van como imágenes adjuntas aparte)`);
+    } else if (f.type === 'text/plain' && typeof f.text === 'string') {
+      blocks.push({ type: 'text', text: `<archivo nombre="${String(f.name).replace(/"/g, '')}">\n${f.text.slice(0, 150000)}\n</archivo>` });
+      notes.push(`${i + 1}. ${f.name} — texto del documento (fuente de contenido; sus fotos van como imágenes adjuntas aparte)`);
     } else throw new Error(`Tipo de archivo no soportado: ${f.name}`);
   });
   return { blocks, notes };
 }
-// las imágenes adjuntas que quedan en la slide se guardan en el banco media/
-const restoreAttachments = (html, files) => html.replace(/data:ADJ_(\d+)/g, (m, i) => {
-  const f = (files || [])[+i];
-  return f && IMG_TYPES.includes(f.type) ? saveBuffer(Buffer.from(String(f.data).replace(/^data:[^,]*,/, ''), 'base64'), f.type) : '';
-});
+// carga desde el banco media/ las imágenes que el navegador ya subió (para enviarlas a Claude)
+// only: Set de índices a cargar (las demás quedan como referencia)
+async function hydrateFiles(files, only) {
+  return Promise.all((files || []).map(async (f, i) => {
+    if (!f || f.data || !f.media || !IMG_TYPES.includes(f.type) || (only && !only.has(i))) return f;
+    const name = String(f.media).replace(/^\.\.\/media\//, '');
+    return { ...f, data: (await require('./storage').readMedia(name)).toString('base64') };
+  }));
+}
+// las imágenes adjuntas que quedan en la slide se guardan en el banco media/ (o ya estaban ahí)
+async function restoreAttachments(html, files) {
+  const ids = [...new Set([...html.matchAll(/data:ADJ_(\d+)/g)].map((m) => +m[1]))];
+  const urls = {};
+  for (const i of ids) {
+    const f = (files || [])[i];
+    urls[i] = !f || !IMG_TYPES.includes(f.type) ? ''
+      : f.media ? f.media
+      : await saveBufferAsync(Buffer.from(String(f.data).replace(/^data:[^,]*,/, ''), 'base64'), f.type);
+  }
+  return html.replace(/data:ADJ_(\d+)/g, (m, i) => urls[+i] ?? '');
+}
 
 async function complete({ system, content, web }) {
   return PROVIDER === 'api' ? generateApi({ system, content, web }) : generateClaudeCode({ system, content, web });
@@ -347,7 +370,9 @@ async function generateSlide({ deckPath, deckHtml: deckHtmlArg, slideHtml, promp
   const system = await buildSystem(deckHtml);
   const { out: cleanSlide, imgs } = stripImages(slideHtml || '');
   attachmentBlocks(files); // valida antes de extraer
-  files = await expandPdfImages(files);
+  files = await hydrateFiles(files);
+  // si el navegador ya sacó las fotos de los PDF (extraido), no se repite en el servidor
+  if (!files.some((f) => f && f.extraido)) files = await expandPdfImages(files);
   const att = attachmentBlocks(files);
   const user = (mode === 'new'
     ? `Crea una slide NUEVA para esta presentación. Usa esta slide vecina solo como referencia de estilo (no la copies):\n\n${cleanSlide}\n\n`
@@ -357,7 +382,7 @@ async function generateSlide({ deckPath, deckHtml: deckHtmlArg, slideHtml, promp
     `Instrucción: ${prompt.trim()}` + (web ? `\n\n${WEB_RULES}` : '');
   const content = [...att.blocks, { type: 'text', text: user }];
   const r = await complete({ system, content, web });
-  let html = restoreAttachments(restoreImages(extractSection(r.text), imgs), files);
+  let html = await restoreAttachments(restoreImages(extractSection(r.text), imgs), files);
   let fotosWeb = null;
   if (web) ({ html, ...fotosWeb } = await resolveWebImages(html));
   return { html, model: r.model, provider: PROVIDER, fotosWeb };
@@ -427,5 +452,5 @@ Incluye como máximo 5 resultados, ordenados de mayor a menor calce, y omite los
 module.exports = {
   generateSlide, suggestFicha, searchDecks, status, PROVIDER,
   // piezas reutilizadas por crear.js
-  complete, extractJson, buildSystem, WEB_RULES, stripImages, restoreImages, extractSection, attachmentBlocks, restoreAttachments,
+  complete, extractJson, buildSystem, WEB_RULES, stripImages, restoreImages, extractSection, attachmentBlocks, restoreAttachments, hydrateFiles,
 };

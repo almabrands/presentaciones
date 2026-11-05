@@ -230,12 +230,13 @@
     });
   }
   // sube una foto al banco media/ → "../media/<hash>.<ext>"
-  function upload(c) {
+  function upload(c, opt2) {
     if (!c) return Promise.resolve(null);
     var png = hasAlpha(c), data = png ? b64(c, 'image/png') : b64(c, 'image/jpeg', 0.88);
     var k = 1;
     while (data.length > MAX_BODY && k > 0.3) { k *= 0.75; var s = scaled(c, c.width * k, c.height * k); png = false; data = b64(s, 'image/jpeg', 0.85); }
-    return post('/api/media', { type: png ? 'image/png' : 'image/jpeg', data: data }).then(function (j) { return j.url; });
+    var type = png ? 'image/png' : 'image/jpeg';
+    return post('/api/media', { type: type, data: data }).then(function (j) { return opt2 && opt2.withType ? { url: j.url, type: type } : j.url; });
   }
 
   /* ───────── completar los slots de imagen de una slide ───────── */
@@ -407,6 +408,34 @@
     }).then(function () { clearInterval(tick); draw(); return job; });
   }
 
-  var api = { run: run, detectBoxes: detectBoxes, dropRepeated: dropRepeated, mul: mul };
+  /* ───────── PDF adjunto (Crear presentación con IA): fotos + texto ───────── */
+  function b64bytes(data) { return Uint8Array.from(atob(String(data).replace(/^data:[^,]*,/, '')), function (c) { return c.charCodeAt(0); }); }
+  // → { text, photos: [{name, canvas}] } — fotos de cierto tamaño (≥ 1,5 % de la slide), las más grandes primero
+  function pdfAttachment(file, opt) {
+    opt = opt || {};
+    var maxPages = opt.maxPages || 40, max = opt.max || 16;
+    return pdfjs().then(function (m) {
+      return m.getDocument({ data: b64bytes(file.data), isEvalSupported: false }).promise.then(function (doc) { return new PdfSource(doc, m); });
+    }).then(function (src) {
+      var nums = []; for (var i = 1; i <= src.n; i++) nums.push(i);
+      var texts = [], boxes = {};
+      return nums.reduce(function (p, n) {
+        return p.then(function () { return src.text(n); }).then(function (t) { texts.push('--- Página ' + n + '\n' + t); })
+          .then(function () { return n <= maxPages ? src.boxes(n).catch(function () { return []; }) : []; }).then(function (b) { if (n <= maxPages) boxes[n] = b; });
+      }, Promise.resolve()).then(function () {
+        dropRepeated(boxes, Object.keys(boxes).length);
+        var list = [];
+        Object.keys(boxes).forEach(function (n) { boxes[n].forEach(function (b, k) { if (b.w * b.h >= W * H * 0.015) list.push({ p: +n, k: k, b: b }); }); });
+        list = list.sort(function (x, y) { return y.b.w * y.b.h - x.b.w * x.b.h; }).slice(0, max).sort(function (x, y) { return x.p - y.p || x.k - y.k; });
+        var photos = [];
+        return list.reduce(function (p, it) {
+          return p.then(function () { return src.photo(it.p, it.b).catch(function () { return null; }); })
+            .then(function (c) { if (c) photos.push({ name: file.name + ' · pág. ' + it.p + ' · imagen ' + (it.k + 1), canvas: c }); });
+        }, Promise.resolve()).then(function () { return { text: texts.join('\n'), photos: photos, pages: src.n }; });
+      });
+    });
+  }
+
+  var api = { run: run, detectBoxes: detectBoxes, dropRepeated: dropRepeated, mul: mul, post: post, upload: upload, pool: pool, pdfAttachment: pdfAttachment, MAX_BODY: MAX_BODY };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AlmaImport = api;
 })(this);

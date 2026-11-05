@@ -273,7 +273,7 @@ async function fetchImage(u, depth = 0) {
     : /^image\/svg/.test(type) || /^\s*<(\?xml|svg)/.test(buf.slice(0, 200).toString()) ? 'image/svg+xml' : '';
   if (!sniff) throw new Error('no es una imagen');
   if (buf.length < 3000 && sniff !== 'image/svg+xml') throw new Error('imagen demasiado pequeña');
-  return saveBuffer(buf, sniff);
+  return saveBufferAsync(buf, sniff);
 }
 
 // slots <div class="foto" data-web="URL"> → descarga la foto a media/; si falla, el slot queda vacío con la URL en la pista

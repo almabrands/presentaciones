@@ -180,16 +180,22 @@ app.post('/api/buscar', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-app.post('/api/crear', async (req, res, next) => {
+// Crear presentación con IA: el navegador orquesta pasos cortos (core/crear-ia.js)
+app.post('/api/crear/plan', async (req, res, next) => {
   try {
     const b = req.body;
-    const r = crear.start({ brief: b.brief, data: b.data, files: b.files, base: b.base || '', largo: +b.largo || 0, titulo: (b.titulo || '').trim(), web: !!b.web });
-    console.log(`Crear con IA: "${String(b.brief).slice(0, 60)}" → trabajo ${r.id}`);
-    res.json(r);
+    console.log(`Crear con IA: "${String(b.brief).slice(0, 60)}" → plan`);
+    res.json(await crear.planStep({ brief: b.brief, data: b.data, files: b.files, base: b.base || '', largo: +b.largo || 0, web: !!b.web }));
   } catch (e) { next(e); }
 });
-app.get('/api/crear', (req, res, next) => {
-  try { res.json(crear.get(req.query.id)); } catch (e) { next(e); }
+app.post('/api/crear/fotos', async (req, res, next) => {
+  try { res.json(await crear.photosStep(req.body)); } catch (e) { next(e); }
+});
+app.post('/api/crear/slide', async (req, res, next) => {
+  try { res.json(await crear.slideStep(req.body)); } catch (e) { next(e); }
+});
+app.post('/api/crear/guardar', async (req, res, next) => {
+  try { res.json(await crear.saveStep(req.body)); } catch (e) { next(e); }
 });
 
 // Importar plantilla: el navegador (core/pdf-import.js) orquesta pasos cortos (cada request < 4,5 MB para Vercel)
