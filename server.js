@@ -37,7 +37,26 @@ const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 const app = express();
 app.use(express.json({ limit: '200mb' }));
 
-// Archivos estáticos (local: desde disco; Vercel: CDN sirve core/ y plantillas/ del repo)
+const auth = require('./auth');
+
+// ── Presentaciones y plantillas desde Supabase (solo modo supabase; requieren sesión) ──
+// En Vercel, vercel.json manda /presentaciones/* y /plantillas/* a esta función (antes que los archivos del repo),
+// para que siempre se vea la versión guardada en la base. Si una plantilla no está en la base, se usa la del repo.
+if (storage.mode === 'supabase') {
+  app.get(['/presentaciones/:file', '/plantillas/:file'], auth.guard({ page: true }), async (req, res, next) => {
+    const dir = req.path.startsWith('/plantillas/') ? 'plantillas' : 'presentaciones';
+    try {
+      const relPath = storage.validatePath(`${dir}/${req.params.file}`);
+      const html = storage.rewriteMediaUrls(await storage.readDeck(relPath));
+      res.set('Content-Type', 'text/html; charset=utf-8').set('Cache-Control', 'no-store').send(html);
+    } catch (e) {
+      if (dir === 'plantillas' && e.status === 404) return next();
+      next(e);
+    }
+  });
+}
+
+// Archivos estáticos (local: desde disco; Vercel: core/ desde el CDN)
 app.use('/core', express.static(path.join(ROOT, 'core'), { maxAge: 0 }));
 app.use('/plantillas', express.static(path.join(ROOT, 'plantillas'), { maxAge: 0 }));
 if (storage.mode === 'local') {
@@ -55,15 +74,8 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// ── Presentaciones desde Supabase (solo modo supabase) ──
-app.get('/presentaciones/:file', async (req, res, next) => {
-  if (storage.mode === 'local') return next();
-  try {
-    const relPath = storage.validatePath(`presentaciones/${req.params.file}`);
-    const html = storage.rewriteMediaUrls(await storage.readDeck(relPath));
-    res.set('Content-Type', 'text/html; charset=utf-8').set('Cache-Control', 'no-store').send(html);
-  } catch (e) { next(e); }
-});
+// ── Todo el resto de la API requiere sesión (modo supabase) ──
+app.use('/api', auth.guard());
 
 // ── Media desde Supabase Storage (solo modo supabase) ──
 app.get('/media/:file', (req, res, next) => {

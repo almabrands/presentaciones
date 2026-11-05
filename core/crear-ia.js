@@ -14,6 +14,20 @@
     var draw = function () { try { opt.onProgress(job); } catch (e) {} };
     var say = function (t) { job.pasos.push(t); draw(); };
     var tick = setInterval(draw, 1000);
+    var OK_MSG = '¡Presentación lista!';
+    var post = A.post;
+    // si falla solo el guardado, las slides siguen en memoria: se puede reintentar sin volver a generarlas
+    function saveStep(url, body, done) {
+      return post(url, body).then(done, function (e) {
+        job.retry = function () {
+          job.retry = null; job.error = null; job.fase = 'armando'; say('Reintentando guardar…');
+          return saveStep(url, body, done).then(function () { job.fase = 'listo'; say(OK_MSG); },
+            function (e2) { job.fase = 'error'; job.error = e2.message; say('Error: ' + e2.message); }).then(draw);
+        };
+        throw e;
+      });
+    }
+
     var brief = String(opt.brief || '').trim(), data = String(opt.data || '');
     var files = [], plan;
 
@@ -91,11 +105,11 @@
           .then(function () { job.hechas++; draw(); });
       }).then(function () {
         job.fase = 'armando'; say('Armando la presentación…');
-        return A.post('/api/crear/guardar', { titulo: job.titulo, base: p.base.path, ficha: p.ficha, slides: out });
+        return saveStep('/api/crear/guardar', { titulo: job.titulo, base: p.base.path, ficha: p.ficha, slides: out }, function (r) { job.path = r.path; });
       });
-    }).then(function (r) { job.path = r.path; });
+    });
 
-    return work.then(function () { job.fase = 'listo'; say('¡Presentación lista!'); },
+    return work.then(function () { job.fase = 'listo'; say(OK_MSG); },
       function (e) { job.fase = 'error'; job.error = e.message; say('Error: ' + e.message); })
       .then(function () { clearInterval(tick); draw(); return job; });
   }

@@ -322,6 +322,18 @@
     var draw = function () { try { opt.onProgress(job); } catch (e) {} };
     var say = function (t) { job.pasos.push(t); draw(); };
     var tick = setInterval(draw, 1000);
+    var OK_MSG = '¡Plantilla lista! Revísala en el editor y ajusta lo que haga falta.';
+    // si falla solo el guardado, las slides siguen en memoria: se puede reintentar sin volver a generarlas
+    function saveStep(url, body, done) {
+      return post(url, body).then(done, function (e) {
+        job.retry = function () {
+          job.retry = null; job.error = null; job.fase = 'armando'; say('Reintentando guardar…');
+          return saveStep(url, body, done).then(function () { job.fase = 'listo'; say(OK_MSG); },
+            function (e2) { job.fase = 'error'; job.error = e2.message; say('Error: ' + e2.message); }).then(draw);
+        };
+        throw e;
+      });
+    }
 
     var work = (function () {
       var h = files.filter(function (f) { return /html/.test(f.type) || /\.html?$/i.test(f.name); })[0];
@@ -396,13 +408,13 @@
           var ok = out.filter(Boolean);
           if (!ok.length) throw new Error('No se pudo replicar ninguna página.');
           job.fase = 'armando'; say('Armando la plantilla…');
-          return post('/api/plantillas/guardar', { a: aLite, slides: ok });
+          return saveStep('/api/plantillas/guardar', { a: aLite, slides: ok }, function (r) { job.path = r.path; job.titulo = r.titulo || job.titulo; });
         });
-      }).then(function (r) { job.path = r.path; job.titulo = r.titulo || job.titulo; });
+      });
     })();
 
     return work.then(function () {
-      job.fase = 'listo'; say('¡Plantilla lista! Revísala en el editor y ajusta lo que haga falta.');
+      job.fase = 'listo'; say(OK_MSG);
     }, function (e) {
       job.fase = 'error'; job.error = e.message; say('Error: ' + e.message);
     }).then(function () { clearInterval(tick); draw(); return job; });

@@ -530,7 +530,7 @@ function googleLogin() {
 }
 function logout() {
   if (!_sb) return;
-  _sb.auth.signOut().then(function () { window.location.reload(); });
+  _sb.auth.signOut().then(function () { _setToken(null); window.location.reload(); });
 }
 function _showLoginOverlay(msg) {
   var ov = document.getElementById('loginOverlay');
@@ -551,13 +551,21 @@ function _showUser(user) {
     '<button onclick="logout()">Salir</button>';
   pill.style.display = 'flex';
 }
+// el servidor verifica la sesión con esta cookie (auth.js); se renueva sola con el token de Supabase
+function _setToken(session) {
+  var secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = session ? 'alma_at=' + encodeURIComponent(session.access_token) + '; Path=/; SameSite=Lax; Max-Age=' + Math.max(60, (session.expires_at || 0) - Math.floor(Date.now() / 1000)) + secure
+    : 'alma_at=; Path=/; Max-Age=0' + secure;
+}
 function initAuth() {
   return fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     _authCfg = cfg;
     if (!cfg.supabaseUrl) return true; // modo local: sin auth
     _sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    _sb.auth.onAuthStateChange(function (ev, session) { _setToken(session); });
     return _sb.auth.getSession().then(function (res) {
       var session = res.data && res.data.session;
+      _setToken(session);
       if (!session) { _showLoginOverlay(); return false; }
       var email = session.user.email;
       var allowed = cfg.allowedEmails || [];
@@ -959,8 +967,11 @@ function initAuth() {
       (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + (s.accion === 'reusar' ? 'Reusada: ' : 'Molde: ') + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
       (j.fase === 'listo' ? '<div class="done"><a class="btn primary" href="/' + esc(j.path) + '">Abrir y editar</a><span style="font-size:13px;color:var(--mute)">También queda en “Mis presentaciones”, con su ficha.</span></div>' : '') +
       (j.error ? '<p style="color:#c00;font-size:13px;margin:10px 0 0">' + esc(j.error) + '</p>' : '') +
+      (j.retry ? '<div class="done"><button class="btn primary" data-a="retry">Reintentar guardar</button><span style="font-size:13px;color:var(--mute)">Las slides ya están generadas: no se vuelven a crear.</span></div>' : '') +
       '<div class="log">' + j.pasos.map(esc).join('<br>') + '</div></div>';
   }
+  var cLast = null;
+  $('#cprog').addEventListener('click', function (e) { if (e.target.closest('[data-a="retry"]') && cLast && cLast.retry) cLast.retry().then(function () { if (cLast.fase === 'listo') load(); }); });
   $('#cGo').onclick = function () {
     var brief = $('#cbrief').value.trim();
     if (!brief) return $('#cbrief').focus();
@@ -970,7 +981,7 @@ function initAuth() {
     // el navegador orquesta pasos cortos contra el servidor (core/crear-ia.js); no cierres la pestaña mientras trabaja
     window.AlmaCrear.run({ brief: brief, titulo: $('#ctitulo').value, base: $('#cbase').value, largo: $('#clargo').value, data: $('#cdata').value, web: $('#cweb').checked,
       files: cFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }),
-      onProgress: drawJob,
+      onProgress: function (j) { cLast = j; drawJob(j); },
     }).then(function (j) { cJob = null; $('#cGo').disabled = false; if (j.fase === 'listo') load(); });
   };
 
@@ -989,11 +1000,11 @@ function initAuth() {
   }
   window.addEventListener('hashchange', route);
   $('#newTplBtn').onclick = function () { $('#tFile').click(); };
-  api('GET', '/api/ai/status').then(function (j) {
+  function aiStatus() { return api('GET', '/api/ai/status').then(function (j) {
     var el = $('#aist'); el.className = 'aist ' + (j.ready ? 'ok' : 'err');
     $('span', el).textContent = j.ready ? (j.provider === 'api' ? 'IA: API Anthropic' : 'IA: tu cuenta de Claude') : 'IA no disponible';
     el.title = j.detail || '';
-  }).catch(function () {});
+  }).catch(function () {}); }
 
   /* ───────── progreso genérico de trabajos IA ───────── */
   function progressHtml(j, opt) {
@@ -1007,6 +1018,7 @@ function initAuth() {
       (j.slides.length ? '<ol class="plan">' + j.slides.map(function (s) { return '<li data-e="' + s.estado + '"><span class="ic">' + icons[s.estado] + '</span><span>' + esc(s.proposito) + '<small>' + esc(s.origen) + '</small></span></li>'; }).join('') + '</ol>' : '') +
       (j.fase === 'listo' ? '<div class="done" data-p="' + esc(j.path) + '" data-t="' + esc(j.titulo || '') + '"><a class="btn primary" href="/' + esc(j.path) + '">' + opt.abrir + '</a><button class="btn" data-a="ficha">Ver ficha</button></div>' : '') +
       (j.error ? '<p style="color:#c00;font-size:13px;margin:10px 0 0">' + esc(j.error) + '</p>' : '') +
+      (j.retry ? '<div class="done"><button class="btn primary" data-a="retry">Reintentar guardar</button><span style="font-size:13px;color:var(--mute)">Las slides ya están generadas: no se vuelven a crear.</span></div>' : '') +
       '<div class="log">' + j.pasos.map(esc).join('<br>') + '</div></div>';
   }
 
@@ -1036,6 +1048,8 @@ function initAuth() {
   $('#tDrop').addEventListener('drop', function (e) { e.preventDefault(); $('#tDrop').classList.remove('drag'); addT(e.dataTransfer.files); });
   $('#tChips').addEventListener('click', function (e) { var b = e.target.closest('[data-rmt]'); if (b) { tFiles.splice(+b.dataset.rmt, 1); drawT(); } });
   var TOPT = { fases: { 'en cola': 'Preparando…', preparando: 'Leyendo el archivo…', analizando: 'Analizando la presentación…', generando: 'Replicando slides ({h} de {t})…', armando: 'Armando la plantilla…', listo: 'Plantilla lista', error: 'No se pudo crear la plantilla' }, espera: 'Puede tardar 2–5 minutos según el número de páginas.', abrir: 'Abrir y revisar', light: true };
+  var tLast = null;
+  $('#tprog').addEventListener('click', function (e) { if (e.target.closest('[data-a="retry"]') && tLast && tLast.retry) tLast.retry().then(function () { if (tLast.fase === 'listo') { tFiles = []; drawT(); load(); } }); });
   $('#tGo').onclick = function () {
     if (tBusy) return;
     if (!tFiles.length) return $('#tFile').click();
@@ -1045,7 +1059,7 @@ function initAuth() {
     window.AlmaImport.run({
       files: tFiles.map(function (f) { return { name: f.name, type: f.type, data: f.data }; }),
       nombre: $('#tNombre').value, notas: $('#tNotas').value,
-      onProgress: function (j) { $('#tprog').innerHTML = progressHtml(j, TOPT); },
+      onProgress: function (j) { tLast = j; $('#tprog').innerHTML = progressHtml(j, TOPT); },
     }).then(function (j) {
       tBusy = false; $('#tGo').disabled = false;
       if (j.fase === 'listo') { tFiles = []; drawT(); load(); }
@@ -1119,7 +1133,7 @@ function initAuth() {
     });
   });
 
-  initAuth().then(function (ok) { if (ok) load().then(route); });
+  initAuth().then(function (ok) { if (ok) { aiStatus(); load().then(route); } });
 })();
 </script>
 </body>

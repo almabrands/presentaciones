@@ -6,18 +6,22 @@
       "includeFiles": "{CLAUDE.md,core/*.css,core/*.md,plantillas/*.html}"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
+      "src": "/api/(.*)",
+      "dest": "/api/index"
     },
     {
-      "source": "/presentaciones/(.*)",
-      "destination": "/api/index"
+      "src": "/presentaciones/(.*)",
+      "dest": "/api/index"
     },
     {
-      "source": "/media/(.*)",
-      "destination": "/api/index"
+      "src": "/plantillas/(.*)",
+      "dest": "/api/index"
+    },
+    {
+      "src": "/media/(.*)",
+      "dest": "/api/index"
     }
   ]
 }

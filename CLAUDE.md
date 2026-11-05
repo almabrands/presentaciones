@@ -9,9 +9,9 @@ App para crear/editar presentaciones comerciales de Almabrands como HTML y expor
 - Repo: github.com/almabrands/presentaciones (cuenta GitHub `almabrands`)
 - Vercel: proyecto `steps-proyectos/almabrands-presentaciones` (cuenta ealdunate@almabrands.com)
 - Supabase: proyecto `datmhpgzdqhukidylkon` (cuenta ealdunate@almabrands.com)
-- Variables Vercel configuradas: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `AI_PROVIDER=api`
-- **Pendiente:** `ANTHROPIC_API_KEY` (activa el botón ✨ IA en producción)
-- **Pendiente:** Google Auth (hoy la URL es pública sin login)
+- Variables Vercel: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_EMAILS`, `AI_PROVIDER=api`, `ANTHROPIC_API_KEY`
+- Acceso: login con Google (Supabase Auth) en el home; el navegador guarda el token en la cookie `alma_at` (home y editor la renuevan) y `auth.js` lo verifica en el servidor para toda la API, `/presentaciones/*` y `/plantillas/*`, exigiendo un correo de `ALLOWED_EMAILS`. La base tiene RLS sin políticas públicas: el servidor entra con `SUPABASE_SERVICE_ROLE_KEY` (solo en Vercel, nunca al frontend).
+- `vercel.json` usa `routes` para que `/plantillas/*` y `/presentaciones/*` vayan siempre a la función (versión de la base; si una plantilla no está en la base, la del repo).
 - Storage: bucket `media` público en Supabase; fotos se suben al guardar
 - PDF: "Imprimir → Guardar como PDF" desde el navegador (vectorial, funciona en producción)
 

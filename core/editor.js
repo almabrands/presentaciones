@@ -185,6 +185,23 @@
     toast('Deshecho');
   }
 
+  /* ───────── sesión (producción): mantiene al día la cookie que verifica el servidor ───────── */
+  if (MODE === 'edit') fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
+    if (!cfg.supabaseUrl) return;
+    var sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js';
+    sc.onload = function () {
+      var sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+      var set = function (s) {
+        if (!s) return;
+        document.cookie = 'alma_at=' + encodeURIComponent(s.access_token) + '; Path=/; SameSite=Lax; Max-Age=' + Math.max(60, (s.expires_at || 0) - Math.floor(Date.now() / 1000)) + (location.protocol === 'https:' ? '; Secure' : '');
+      };
+      sb.auth.onAuthStateChange(function (ev, s) { set(s); });
+      sb.auth.getSession().then(function (r) { set(r.data && r.data.session); });
+    };
+    document.head.appendChild(sc);
+  }).catch(function () {});
+
   /* ───────── guardado ───────── */
   function api(method, url, body) {
     return fetch(url, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
