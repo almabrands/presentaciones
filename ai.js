@@ -13,7 +13,10 @@ const { expandPdfImages, saveBuffer, resolveWebImages } = require('./imagenes');
 const ROOT = __dirname;
 const { readFicha, normalize, OPCIONES } = require('./ficha');
 const { guiaMarca } = require('./estilo');
-const PROVIDER = (process.env.AI_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'api' : 'claude-code')).toLowerCase();
+// trim(): las variables cargadas con `echo … | vercel env add` pueden traer un salto de línea.
+// En Vercel no existe la CLI, así que ahí se usa siempre la API.
+const PROVIDER = (process.env.VERCEL ? 'api'
+  : ((process.env.AI_PROVIDER || '').trim() || (process.env.ANTHROPIC_API_KEY ? 'api' : 'claude-code'))).toLowerCase();
 const API_MODEL = process.env.AI_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AI_EFFORT || 'medium';
 const TIMEOUT_MS = 6 * 60 * 1000;
@@ -186,7 +189,7 @@ function apiClient() {
   if (!client) {
     const mod = require('@anthropic-ai/sdk');
     const Anthropic = mod.default || mod;
-    client = new Anthropic({ timeout: TIMEOUT_MS });
+    client = new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY || '').trim(), timeout: TIMEOUT_MS });
   }
   return client;
 }
