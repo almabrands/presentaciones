@@ -1,0 +1,24 @@
+name: Supabase keepalive
+
+# Consulta la base dos veces por semana para que Supabase (plan gratis) no pause el proyecto por inactividad.
+# Usa la clave pública (anon) que la app ya expone en /api/config; RLS devuelve [] pero la consulta llega a Postgres.
+on:
+  schedule:
+    - cron: "0 13 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar Supabase
+        run: |
+          config=$(curl -fsS https://almabrands-presentaciones.vercel.app/api/config)
+          url=$(echo "$config" | jq -r .supabaseUrl)
+          key=$(echo "$config" | jq -r .supabaseAnonKey)
+          echo "::add-mask::$key"
+          for t in decks deck_versions deck_trash; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $key" -H "Authorization: Bearer $key" "$url/rest/v1/$t?select=id&limit=1")
+            echo "$t -> $code"
+            [ "$code" = 200 ] || exit 1
+          done

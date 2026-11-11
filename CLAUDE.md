@@ -14,7 +14,8 @@ App para crear/editar presentaciones comerciales de Almabrands como HTML y expor
 - `vercel.json` usa `routes` para que `/plantillas/*` y `/presentaciones/*` vayan siempre a la función (versión de la base; si una plantilla no está en la base, la del repo).
 - Storage: bucket `media` público en Supabase; fotos se suben al guardar
 - PDF: "Imprimir → Guardar como PDF" desde el navegador (vectorial, funciona en producción)
-- Keepalive: cron diario de Vercel (`vercel.json`, 12:00 UTC) llama `GET /api/ping`, que consulta la tabla `decks` para que Supabase (plan gratis) no pause el proyecto por inactividad. Si existe `CRON_SECRET` en Vercel, exige `Authorization: Bearer <CRON_SECRET>` (Vercel lo envía solo).
+- Keepalive de Supabase (plan gratis, se pausa tras 7 días sin actividad): GitHub Action `.github/workflows/supabase-keepalive.yml` (lunes y jueves 13:00 UTC, también manual) toma la clave anon de `/api/config` y consulta las tablas. GitHub desactiva los workflows programados si el repo pasa 60 días sin commits: en ese caso, reactivarlo en la pestaña Actions.
+- También existe `GET /api/ping` + cron diario en `vercel.json`, pero solo corre en el proyecto Vercel `almabrands/presentaciones` (conectado a git y sin variables de Supabase, modo local), así que no toca la base. La producción en `steps-proyectos` no está conectada a git y se despliega por CLI; al 2026-11-11 no hay sesión con acceso a ese team.
 
 ## Estructura
 - `server.js` — servidor Node sin dependencias: estáticos + API (`/api/list`, `/api/new`, `/api/save`, `/api/stat`, `/api/rename`, `/api/delete`, `/api/pdf`). El PDF se genera con Chrome headless (`--print-to-pdf`) sobre `?print=1`.
