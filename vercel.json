@@ -6,6 +6,12 @@
       "includeFiles": "{CLAUDE.md,core/*.css,core/*.md,plantillas/*.html}"
     }
   },
+  "crons": [
+    {
+      "path": "/api/ping",
+      "schedule": "0 12 * * *"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",

@@ -74,6 +74,16 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// ── Keepalive: el cron diario de Vercel (vercel.json) consulta la base para que Supabase no pause el proyecto ──
+app.get('/api/ping', async (req, res, next) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'no autorizado' });
+  try {
+    await storage.deckExists('plantillas/metro.html');
+    res.json({ ok: true, mode: storage.mode, at: new Date().toISOString() });
+  } catch (e) { next(e); }
+});
+
 // ── Todo el resto de la API requiere sesión (modo supabase) ──
 app.use('/api', auth.guard());
 

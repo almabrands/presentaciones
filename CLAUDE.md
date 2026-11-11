@@ -14,6 +14,7 @@ App para crear/editar presentaciones comerciales de Almabrands como HTML y expor
 - `vercel.json` usa `routes` para que `/plantillas/*` y `/presentaciones/*` vayan siempre a la función (versión de la base; si una plantilla no está en la base, la del repo).
 - Storage: bucket `media` público en Supabase; fotos se suben al guardar
 - PDF: "Imprimir → Guardar como PDF" desde el navegador (vectorial, funciona en producción)
+- Keepalive: cron diario de Vercel (`vercel.json`, 12:00 UTC) llama `GET /api/ping`, que consulta la tabla `decks` para que Supabase (plan gratis) no pause el proyecto por inactividad. Si existe `CRON_SECRET` en Vercel, exige `Authorization: Bearer <CRON_SECRET>` (Vercel lo envía solo).
 
 ## Estructura
 - `server.js` — servidor Node sin dependencias: estáticos + API (`/api/list`, `/api/new`, `/api/save`, `/api/stat`, `/api/rename`, `/api/delete`, `/api/pdf`). El PDF se genera con Chrome headless (`--print-to-pdf`) sobre `?print=1`.
