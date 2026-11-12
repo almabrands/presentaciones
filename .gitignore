@@ -14,5 +14,9 @@ core/assets/.historial/
 # macOS
 .DS_Store
 
+# Cache local del CLI de Supabase (no son secretos, pero es estado de esta máquina)
+supabase/.temp/
+
 *.log
 .vercel
+.env*
